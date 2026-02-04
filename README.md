@@ -63,8 +63,31 @@ git branch
 git checkout main
 
 # 2. 내 브랜치의 내용을 main에 합침
-git merge feature/기능이름
+git merge feature/[기능이름]  # ex)feature/Login, feature/SignUp
 
 # 3. 합쳐진 최신 main을 서버에 올림
 git push origin main
+```
+
+## 4. 🗄️ 데이터베이스 업데이트 (Database Migration)
+
+장고에서는 모델(models.py)의 구조를 변경(테이블 생성, 컬럼 추가 등)하면 반드시 아래 두 단계를 거쳐 데이터베이스에 반영해야 합니다.
+`models.py`를 수정한 후, 장고가 바뀐 내용을 이해할 수 있도록 설계도 파일(migration 파일)을 생성합니다.
+
+```bash
+# Step 1: 설계도 만들기 (makemigrations)
+python -m poetry run python manage.py makemigrations
+
+# ⚠️ 컬럼 추가 시 나타나는 선택지 (중요!)
+# 이미 데이터가 있는 상태에서 새로운 컬럼을 추가하고 `makemigrations`를 실행하면 아래와 같은 메시지가 뜰 수 있습니다:
+
+# ```text
+# It is impossible to add a non-nullable field '새컬럼명' to '모델명' without specifying a default...
+# 1) Provide a one-off default now (make sure the docs explain why...)
+# 2) Quit, and let me add a default in models.py
+# Select an option:
+
+# Step 2: 설계도 만들기 (makemigrations)
+python -m poetry run python manage.py migrate
+
 ```
