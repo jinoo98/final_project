@@ -1,0 +1,14 @@
+# 가상환경
+.venv/
+venv/
+
+# 파이썬 캐시
+__pycache__/
+*.py[cod]
+
+# 장고 DB 및 비밀키
+db.sqlite3
+.env
+
+# Poetry 관련
+.python-version
