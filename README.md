@@ -87,6 +87,8 @@ python -m poetry run python manage.py makemigrations
 # 2) Quit, and let me add a default in models.py
 # Select an option:
 
+# 다음 화면에서는 1번을 누르고 '' 또는 엔터를 누르면 Null값이 자동으로 채워집니다
+
 # Step 2: 설계도 만들기 (makemigrations)
 python -m poetry run python manage.py migrate
 
