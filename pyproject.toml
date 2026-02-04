@@ -1,0 +1,21 @@
+[project]
+name = "final-project"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "dayo98",email = "dayo98@naver.com"}
+]
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.1.0",           # Django 추가
+    "djangorestframework",     # API 서버용 (선택)
+    "python-dotenv",           # 환경변수 관리용
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
