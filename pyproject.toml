@@ -8,8 +8,8 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "django>=5.1.0",           # Django 추가
-    "djangorestframework",     # API 서버용 (선택)
-    "python-dotenv",           # 환경변수 관리용
+    "djangorestframework>=3.16.0",     # API 서버용 (선택)
+    "python-dotenv>=1.2.1",           # 환경변수 관리용
 ]
 
 
