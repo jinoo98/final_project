@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Page - momo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3b82f6',
+                            foreground: '#ffffff',
+                        },
+                        muted: {
+                            foreground: '#6b7280',
+                        },
+                        destructive: {
+                            DEFAULT: '#ef4444',
+                        },
+                        input: {
+                            background: '#ffffff',
+                        },
+                        border: '#e5e7eb',
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+    <div class="min-h-screen flex flex-col">
+        <!-- Fixed Header -->
+        <header class="bg-white border-b border-border sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center gap-4">
+                    <button onclick="location.href='/main/'" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                    </button>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary">
+                            <span class="text-white text-lg">mo</span>
+                        </div>
+                        <h1 class="text-2xl font-bold">마이페이지</h1>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Body -->
+        <div class="flex-1 overflow-y-auto">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Profile Section -->
+                <div class="bg-white rounded-xl shadow-sm p-8 mb-6">
+                    <div class="flex items-center gap-6 mb-8">
+                        <div class="w-24 h-24 rounded-full bg-primary flex items-center justify-center">
+                            <i data-lucide="user" class="w-12 h-12 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-2 text-xl font-medium" id="display-name-header">김철수</h2>
+                            <p class="text-muted-foreground" id="display-email-header">kimcs@example.com</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Name Field -->
+                        <div class="flex items-start gap-4">
+                            <i data-lucide="user" class="w-5 h-5 text-muted-foreground mt-1"></i>
+                            <div class="flex-1">
+                                <label class="block mb-2 font-medium">이름</label>
+                                <p class="text-lg view-mode" id="view-name">김철수</p>
+                                <input type="text" id="edit-name" value="김철수"
+                                    class="hidden w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary edit-mode" />
+                            </div>
+                        </div>
+
+                        <!-- Email Field -->
+                        <div class="flex items-start gap-4">
+                            <i data-lucide="mail" class="w-5 h-5 text-muted-foreground mt-1"></i>
+                            <div class="flex-1">
+                                <label class="block mb-2 font-medium">이메일</label>
+                                <p class="text-lg view-mode" id="view-email">kimcs@example.com</p>
+                                <input type="email" id="edit-email" value="kimcs@example.com"
+                                    class="hidden w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary edit-mode" />
+                            </div>
+                        </div>
+
+                        <!-- Phone Field -->
+                        <div class="flex items-start gap-4">
+                            <i data-lucide="phone" class="w-5 h-5 text-muted-foreground mt-1"></i>
+                            <div class="flex-1">
+                                <label class="block mb-2 font-medium">전화번호</label>
+                                <p class="text-lg view-mode" id="view-phone">010-1234-5678</p>
+                                <input type="tel" id="edit-phone" value="010-1234-5678"
+                                    class="hidden w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary edit-mode" />
+                            </div>
+                        </div>
+
+                        <!-- Join Date Field -->
+                        <div class="flex items-start gap-4">
+                            <i data-lucide="calendar" class="w-5 h-5 text-muted-foreground mt-1"></i>
+                            <div class="flex-1">
+                                <label class="block mb-2 font-medium">가입일</label>
+                                <p class="text-lg">2026-01-15</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex gap-3">
+                        <button id="btn-edit" onclick="toggleEditMode(true)"
+                            class="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium view-mode">
+                            프로필 수정
+                        </button>
+
+                        <button id="btn-cancel" onclick="toggleEditMode(false)"
+                            class="hidden flex-1 px-6 py-3 border border-border rounded-lg hover:bg-gray-50 transition-colors edit-mode">
+                            취소
+                        </button>
+                        <button id="btn-save" onclick="saveProfile()"
+                            class="hidden flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium edit-mode">
+                            저장
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Account Settings -->
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="mb-4 text-lg font-medium">계정 설정</h3>
+                    <div class="space-y-3">
+                        <button class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors">
+                            비밀번호 변경
+                        </button>
+                        <button class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors">
+                            알림 설정
+                        </button>
+                        <button
+                            class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-destructive">
+                            계정 삭제
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function toggleEditMode(isEditing) {
+            const viewElements = document.querySelectorAll('.view-mode');
+            const editElements = document.querySelectorAll('.edit-mode');
+
+            if (isEditing) {
+                viewElements.forEach(el => el.classList.add('hidden'));
+                editElements.forEach(el => el.classList.remove('hidden'));
+            } else {
+                viewElements.forEach(el => el.classList.remove('hidden'));
+                editElements.forEach(el => el.classList.add('hidden'));
+            }
+        }
+
+        function saveProfile() {
+            // Update view values with edit values
+            const name = document.getElementById('edit-name').value;
+            const email = document.getElementById('edit-email').value;
+            const phone = document.getElementById('edit-phone').value;
+
+            document.getElementById('view-name').textContent = name;
+            document.getElementById('display-name-header').textContent = name;
+            document.getElementById('view-email').textContent = email;
+            document.getElementById('display-email-header').textContent = email;
+            document.getElementById('view-phone').textContent = phone;
+
+            toggleEditMode(false);
+
+            // In a real app, you would send an API request here
+            alert('프로필이 저장되었습니다.');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Dashboard - momo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#3b82f6', foreground: '#ffffff' },
+                        muted: { foreground: '#6b7280' },
+                        input: { background: '#ffffff' },
+                        border: '#e5e7eb',
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white border-b border-border sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <button onclick="location.href='/main/'"
+                            class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary">
+                                <span class="text-white text-lg">mo</span>
+                            </div>
+                            <h1 class="text-2xl font-bold">독서 모임</h1>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Navigation (Hidden on Mobile) -->
+                    <div class="hidden md:flex items-center gap-3">
+                        <button onclick="location.href='/meeting/1/schedule/'"
+                            class="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                            일정
+                        </button>
+
+                        <!-- Dashboard Dropdown -->
+                        <div class="relative">
+                            <button onclick="toggleDropdown()"
+                                class="px-4 py-2 rounded-lg transition-colors bg-primary text-primary-foreground font-medium">
+                                회비 대시보드
+                            </button>
+                            <div id="dashboard-dropdown"
+                                class="hidden absolute top-full left-0 mt-2 w-48 bg-white border border-border rounded-lg shadow-lg z-20">
+                                <a href="/meeting/1/detail/"
+                                    class="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors">대시보드 조회</a>
+                                <a href="/meeting/1/detail/?filter=income"
+                                    class="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors">수입 조회</a>
+                                <a href="/meeting/1/detail/?filter=expense"
+                                    class="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors">지출 조회</a>
+                            </div>
+                        </div>
+
+                        <button onclick="location.href='/meeting/1/board/'"
+                            class="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                            모임 게시판
+                        </button>
+                        <button onclick="location.href='/meeting/1/ocr/'"
+                            class="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                            OCR
+                        </button>
+                    </div>
+
+                    <!-- Mobile Menu Button -->
+                    <button onclick="toggleMobileMenu()"
+                        class="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <!-- Mobile Navigation (Hidden by default) -->
+                <div id="mobile-menu" class="hidden md:hidden mt-4 pt-4 border-t border-gray-100 space-y-2">
+                    <button onclick="location.href='/meeting/1/schedule/'"
+                        class="w-full text-left px-4 py-3 rounded-lg transition-colors hover:bg-gray-50 text-base font-medium">
+                        일정
+                    </button>
+
+                    <div class="space-y-1">
+                        <div class="px-4 py-3 font-medium text-base">회비 대시보드</div>
+                        <button onclick="location.href='/meeting/1/detail/'"
+                            class="w-full text-left px-8 py-2 text-base text-gray-600 bg-primary/10 text-primary font-medium rounded-lg">대시보드
+                            조회</button>
+                        <button onclick="location.href='/meeting/1/detail/?filter=income'"
+                            class="w-full text-left px-8 py-2 text-base text-gray-600 hover:bg-gray-50 rounded-lg">수입
+                            조회</button>
+                        <button onclick="location.href='/meeting/1/detail/?filter=expense'"
+                            class="w-full text-left px-8 py-2 text-base text-gray-600 hover:bg-gray-50 rounded-lg">지출
+                            조회</button>
+                    </div>
+
+                    <button onclick="location.href='/meeting/1/board/'"
+                        class="w-full text-left px-4 py-3 rounded-lg transition-colors hover:bg-gray-50 text-base font-medium">
+                        모임 게시판
+                    </button>
+                    <button onclick="location.href='/meeting/1/ocr/'"
+                        class="w-full text-left px-4 py-3 rounded-lg transition-colors hover:bg-gray-50 text-base font-medium">
+                        OCR
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-muted-foreground">잔액</h3>
+                            <i data-lucide="wallet" class="w-5 h-5 text-primary"></i>
+                        </div>
+                        <p class="text-3xl font-bold mb-1">40,000원</p>
+                        <p class="text-sm text-muted-foreground">현재 모임 잔액</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-muted-foreground">총 수입</h3>
+                            <i data-lucide="trending-up" class="w-5 h-5 text-green-500"></i>
+                        </div>
+                        <p class="text-3xl font-bold mb-1">100,000원</p>
+                        <p class="text-sm text-muted-foreground">이번 달</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-muted-foreground">총 지출</h3>
+                            <i data-lucide="trending-down" class="w-5 h-5 text-red-500"></i>
+                        </div>
+                        <p class="text-3xl font-bold mb-1">60,000원</p>
+                        <p class="text-sm text-muted-foreground">이번 달</p>
+                    </div>
+                </div>
+
+                <!-- Transactions -->
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="p-6 border-b border-border flex items-center justify-between">
+                        <h2 class="text-lg font-medium">거래 내역</h2>
+                        <button
+                            class="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            거래 추가
+                        </button>
+                    </div>
+                    <div class="divide-y divide-border">
+                        <!-- Transaction Items -->
+                        <div class="p-6 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm bg-green-100 text-green-700">수입</span>
+                                        <span class="font-medium">회비</span>
+                                    </div>
+                                    <p class="text-muted-foreground mb-1">2월 회비 납부</p>
+                                    <p class="text-sm text-muted-foreground">김철수 · 2026-02-01</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-medium text-green-600">+50,000원</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- More Items -->
+                        <div class="p-6 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm bg-red-100 text-red-700">지출</span>
+                                        <span class="font-medium">도서 구매</span>
+                                    </div>
+                                    <p class="text-muted-foreground mb-1">이달의 책 구매</p>
+                                    <p class="text-sm text-muted-foreground">박영희 · 2026-02-03</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-medium text-red-600">-35,000원</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Assistant FAB -->
+        <button onclick="toggleAI()"
+            class="fixed bottom-6 right-6 w-16 h-16 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:opacity-90 transition-transform hover:scale-105 z-40">
+            <i data-lucide="bot" class="w-8 h-8"></i>
+        </button>
+
+        <!-- AI Assistant Modal -->
+        <div id="ai-modal"
+            class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[600px] flex flex-col">
+                <div class="flex items-center justify-between p-6 border-b border-border">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary">
+                            <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold">AI 총무</h2>
+                            <p class="text-sm text-muted-foreground">언제든지 회계 관련 질문을 해보세요</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleAI()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-6 space-y-4" id="ai-messages">
+                    <div class="flex gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <i data-lucide="bot" class="w-5 h-5 text-gray-600"></i>
+                        </div>
+                        <div class="flex-1 max-w-[70%]">
+                            <div class="inline-block p-4 rounded-2xl bg-gray-100 text-foreground">
+                                <p>안녕하세요! 저는 momo의 AI 총무입니다. 회계 관리, 예산 분석, 지출 추천 등 도움이 필요하신 부분을 말씀해주세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 border-t border-border">
+                    <form onsubmit="handleSendAI(event)" class="flex gap-3">
+                        <input type="text" id="ai-input" placeholder="메시지를 입력하세요..."
+                            class="flex-1 px-4 py-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary">
+                        <button type="submit"
+                            class="px-6 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        function toggleAI() {
+            const modal = document.getElementById('ai-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('dashboard-dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        function closeDropdown(event) {
+            // Close if clicking outside the dropdown button
+            if (!event.target.closest('button[onclick="toggleDropdown()"]')) {
+                document.getElementById('dashboard-dropdown').classList.add('hidden');
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function handleSendAI(e) {
+            e.preventDefault();
+            const input = document.getElementById('ai-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chat = document.getElementById('ai-messages');
+
+            // User Message
+            const userDiv = document.createElement('div');
+            userDiv.className = 'flex gap-3 flex-row-reverse';
+            userDiv.innerHTML = `
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <i data-lucide="user" class="w-5 h-5 text-white"></i>
+                </div>
+                <div class="flex-1 max-w-[70%] text-right">
+                    <div class="inline-block p-4 rounded-2xl bg-primary text-white">
+                        <p>${message}</p>
+                    </div>
+                </div>
+            `;
+            chat.appendChild(userDiv);
+            input.value = '';
+            lucide.createIcons();
+            chat.scrollTop = chat.scrollHeight;
+
+            // Mock Response
+            setTimeout(() => {
+                const botDiv = document.createElement('div');
+                botDiv.className = 'flex gap-3';
+                let responseText = '죄송합니다. 아직 학습 중이에요.';
+                if (message.includes('잔액')) responseText = '현재 모임의 잔액은 40,000원입니다.';
+                else if (message.includes('추천')) responseText = '다음 달에는 회비를 미리 받는 것을 추천드립니다.';
+
+                botDiv.innerHTML = `
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                        <i data-lucide="bot" class="w-5 h-5 text-gray-600"></i>
+                    </div>
+                    <div class="flex-1 max-w-[70%]">
+                        <div class="inline-block p-4 rounded-2xl bg-gray-100 text-foreground">
+                            <p>${responseText}</p>
+                        </div>
+                    </div>
+                `;
+                chat.appendChild(botDiv);
+                lucide.createIcons();
+                chat.scrollTop = chat.scrollHeight;
+            }, 1000);
+        }
+    </script>
+</body>
+
+</html>

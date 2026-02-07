@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule - momo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #e5e7eb;
+            /* Border color */
+        }
+
+        .calendar-cell {
+            background-color: white;
+            min-height: 120px;
+            position: relative;
+        }
+
+        .calendar-cell:hover .add-btn {
+            display: flex;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#3b82f6', foreground: '#ffffff' },
+                        muted: { foreground: '#6b7280' },
+                        input: { background: '#ffffff' },
+                        border: '#e5e7eb',
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white border-b border-border sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <button onclick="location.href='/main/'"
+                            class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary">
+                                <span class="text-white text-lg">mo</span>
+                            </div>
+                            <h1 class="text-2xl font-bold">독서 모임</h1>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Navigation (Hidden on Mobile) -->
+                    <div class="hidden md:flex items-center gap-3">
+                        <button onclick="location.href='/meeting/1/schedule/'"
+                            class="px-4 py-2 rounded-lg transition-colors bg-primary text-primary-foreground font-medium">
+                            일정
+                        </button>
+
+                        <!-- Dashboard Dropdown -->
+                        <div class="relative">
+                            <button onclick="toggleDropdown()"
+                                class="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                                회비 대시보드
+                            </button>
+                            <div id="dashboard-dropdown"
+                                class="hidden absolute top-full left-0 mt-2 w-48 bg-white border border-border rounded-lg shadow-lg z-20">
+                                <a href="/meeting/1/detail/"
+                                    class="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors">대시보드 조회</a>
+                                <a href="/meeting/1/detail/?filter=income"
+                                    class="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors">수입 조회</a>
+                                <a href="/meeting/1/detail/?filter=expense"
+                                    class="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors">지출 조회</a>
+                            </div>
+                        </div>
+
+                        <button onclick="location.href='/meeting/1/board/'"
+                            class="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                            모임 게시판
+                        </button>
+                        <button onclick="location.href='/meeting/1/ocr/'"
+                            class="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                            OCR
+                        </button>
+                    </div>
+
+                    <!-- Mobile Menu Button -->
+                    <button onclick="toggleMobileMenu()"
+                        class="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <!-- Mobile Navigation (Hidden by default) -->
+                <div id="mobile-menu" class="hidden md:hidden mt-4 pt-4 border-t border-gray-100 space-y-2">
+                    <button onclick="location.href='/meeting/1/schedule/'"
+                        class="w-full text-left px-4 py-3 rounded-lg transition-colors bg-primary/10 text-primary font-medium text-base">
+                        일정
+                    </button>
+
+                    <div class="space-y-1">
+                        <div class="px-4 py-3 font-medium text-base">회비 대시보드</div>
+                        <button onclick="location.href='/meeting/1/detail/'"
+                            class="w-full text-left px-8 py-2 text-base text-gray-600 hover:bg-gray-50 rounded-lg">대시보드
+                            조회</button>
+                        <button onclick="location.href='/meeting/1/detail/?filter=income'"
+                            class="w-full text-left px-8 py-2 text-base text-gray-600 hover:bg-gray-50 rounded-lg">수입
+                            조회</button>
+                        <button onclick="location.href='/meeting/1/detail/?filter=expense'"
+                            class="w-full text-left px-8 py-2 text-base text-gray-600 hover:bg-gray-50 rounded-lg">지출
+                            조회</button>
+                    </div>
+
+                    <button onclick="location.href='/meeting/1/board/'"
+                        class="w-full text-left px-4 py-3 rounded-lg transition-colors hover:bg-gray-50 text-base font-medium">
+                        모임 게시판
+                    </button>
+                    <button onclick="location.href='/meeting/1/ocr/'"
+                        class="w-full text-left px-4 py-3 rounded-lg transition-colors hover:bg-gray-50 text-base font-medium">
+                        OCR
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto" onclick="closeDropdown(event)">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Calendar Controls -->
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">2026년 2월</h2>
+                    <div class="flex gap-2">
+                        <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="chevron-left"
+                                class="w-5 h-5"></i></button>
+                        <button class="px-4 py-2 border border-input rounded-lg hover:bg-gray-50">오늘</button>
+                        <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="chevron-right"
+                                class="w-5 h-5"></i></button>
+                    </div>
+                </div>
+
+                <!-- Calendar Content -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+                    <!-- Days Header -->
+                    <div class="grid grid-cols-7 border-b border-border bg-gray-50">
+                        <div class="py-3 text-center text-sm font-medium text-gray-500">일</div>
+                        <div class="py-3 text-center text-sm font-medium text-gray-500">월</div>
+                        <div class="py-3 text-center text-sm font-medium text-gray-500">화</div>
+                        <div class="py-3 text-center text-sm font-medium text-gray-500">수</div>
+                        <div class="py-3 text-center text-sm font-medium text-gray-500">목</div>
+                        <div class="py-3 text-center text-sm font-medium text-gray-500">금</div>
+                        <div class="py-3 text-center text-sm font-medium text-gray-500">토</div>
+                    </div>
+
+                    <!-- Days Grid -->
+                    <div class="calendar-grid" id="calendar-body">
+                        <!-- JS injected days -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAB -->
+        <button onclick="toggleAI()"
+            class="fixed bottom-6 right-6 w-16 h-16 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:opacity-90 transition-transform hover:scale-105 z-40">
+            <i data-lucide="bot" class="w-8 h-8"></i>
+        </button>
+
+        <!-- Modals -->
+
+        <!-- 1. Selection Modal -->
+        <div id="modal-selection"
+            class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div
+                class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center transform transition-all scale-100">
+                <h3 class="text-lg font-bold mb-6">일정 추가 방식 선택</h3>
+                <div class="flex flex-col gap-4">
+                    <button onclick="openManualModal()"
+                        class="flex items-center justify-center gap-3 p-4 border border-border rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-colors group">
+                        <div class="p-2 bg-blue-100 rounded-full group-hover:bg-blue-200"><i data-lucide="edit-3"
+                                class="w-5 h-5 text-primary"></i></div>
+                        <div class="text-left">
+                            <p class="font-medium">수동 기입</p>
+                            <p class="text-xs text-muted-foreground">직접 세부 내용을 입력합니다</p>
+                        </div>
+                    </button>
+                    <button onclick="openAIModal()"
+                        class="flex items-center justify-center gap-3 p-4 border border-border rounded-xl hover:bg-purple-50 hover:border-purple-200 transition-colors group">
+                        <div class="p-2 bg-purple-100 rounded-full group-hover:bg-purple-200"><i data-lucide="bot"
+                                class="w-5 h-5 text-purple-600"></i></div>
+                        <div class="text-left">
+                            <p class="font-medium">AI 기입</p>
+                            <p class="text-xs text-muted-foreground">AI에게 말하듯 입력합니다</p>
+                        </div>
+                    </button>
+                </div>
+                <button onclick="closeAllModals()" class="mt-6 text-sm text-gray-500 hover:text-gray-800">취소</button>
+            </div>
+        </div>
+
+        <!-- 2. Manual Input Modal -->
+        <div id="modal-manual"
+            class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">새 일정 만들기</h3>
+                    <button onclick="closeAllModals()"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form onsubmit="event.preventDefault(); addEventManual();" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">제목</label>
+                        <input type="text" id="manual-title"
+                            class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+                            required placeholder="예: 정기 모임">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">날짜</label>
+                            <input type="date" id="manual-date"
+                                class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+                                required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">시간</label>
+                            <input type="time" id="manual-time"
+                                class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">내용</label>
+                        <textarea id="manual-desc" rows="3"
+                            class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+                            placeholder="일정 상세 내용을 입력하세요"></textarea>
+                    </div>
+                    <button type="submit"
+                        class="w-full py-3 bg-primary text-white rounded-lg hover:bg-blue-600 font-medium">일정
+                        추가</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3. AI Input Modal -->
+        <div id="modal-ai"
+            class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="p-1.5 bg-purple-100 rounded-full"><i data-lucide="bot"
+                                class="w-5 h-5 text-purple-600"></i></div>
+                        <h3 class="text-lg font-bold">AI로 일정 추가</h3>
+                    </div>
+                    <button onclick="closeAllModals()"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form onsubmit="event.preventDefault(); addEventAI();" class="space-y-4">
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <p class="text-sm text-purple-800 mb-2 font-medium">이렇게 말해보세요:</p>
+                        <ul class="text-sm text-purple-700 list-disc list-inside space-y-1">
+                            <li>"다음 주 금요일 저녁 7시에 강남역에서 정기 모임"</li>
+                            <li>"내일 오후 2시 운영진 회의"</li>
+                        </ul>
+                    </div>
+                    <textarea id="ai-input-text" rows="4"
+                        class="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                        placeholder="일정 내용을 자유롭게 입력하세요..." required></textarea>
+                    <button type="submit"
+                        class="w-full py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        AI로 분석하여 추가
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 4. Event Detail Modal -->
+        <div id="modal-detail"
+            class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden">
+                <div class="bg-primary px-6 py-4 flex justify-between items-start">
+                    <h3 class="text-white text-lg font-bold mt-1" id="detail-title">제목</h3>
+                    <button onclick="closeAllModals()" class="text-white/80 hover:text-white"><i data-lucide="x"
+                            class="w-5 h-5"></i></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex items-center gap-3 text-gray-600">
+                        <i data-lucide="calendar" class="w-5 h-5"></i>
+                        <span id="detail-date" class="font-medium">날짜</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-600">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                        <span id="detail-time">시간</span>
+                    </div>
+                    <div class="flex items-start gap-3 text-gray-600">
+                        <i data-lucide="align-left" class="w-5 h-5 mt-1"></i>
+                        <p id="detail-desc" class="text-sm leading-relaxed">내용</p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-6 py-3 flex justify-end gap-2 border-t border-border">
+                    <button class="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg">삭제</button>
+                    <button class="px-3 py-1.5 text-sm text-primary hover:bg-blue-50 rounded-lg">수정</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Assistant Chat Modal (Consistent) -->
+        <div id="ai-modal"
+            class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[600px] flex flex-col">
+                <div class="flex items-center justify-between p-6 border-b border-border">
+                    <h2 class="font-bold">AI 총무</h2>
+                    <button onclick="toggleAI()"><i data-lucide="x"></i></button>
+                </div>
+                <div class="flex-1 p-6">
+                    <p class="text-center text-muted-foreground">AI 채팅...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Data & State
+        const today = new Date();
+        let currentYear = 2026;
+        let currentMonth = 1; // 0-indexed (Feb)
+
+        let events = [
+            { id: 1, title: '정기 모임', date: '2026-02-05', time: '19:00', desc: '강남역 11번 출구', type: 'meeting' },
+            { id: 2, title: '운영진 회의', date: '2026-02-12', time: '14:00', desc: '줌 미팅', type: 'meeting' },
+            { id: 3, title: '회비 납부 마감', date: '2026-02-25', time: '23:59', desc: '계좌 확인 필수', type: 'money' }
+        ];
+
+        let selectedDate = null;
+
+        // Render Calendar
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-body');
+            grid.innerHTML = '';
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            // Previous Month Padding
+            for (let i = 0; i < firstDay; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell bg-gray-50'; // Grey out
+                grid.appendChild(cell);
+            }
+
+            // Days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell p-2 transition-colors hover:bg-blue-50/30';
+
+                // Date Number
+                const dateNum = document.createElement('div');
+                dateNum.className = 'text-sm font-medium mb-1 ' + (day === 5 ? 'text-blue-600 bg-blue-100 w-6 h-6 rounded-full flex items-center justify-center' : 'text-gray-700');
+                dateNum.textContent = day;
+                cell.appendChild(dateNum);
+
+                // Events
+                const dayEvents = events.filter(e => e.date === dateStr);
+                dayEvents.forEach(evt => {
+                    const chip = document.createElement('div');
+                    chip.className = `text-xs px-2 py-1 rounded mb-1 truncate cursor-pointer hover:opacity-80 ${evt.type === 'money' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`;
+                    chip.textContent = evt.title;
+                    chip.onclick = (e) => {
+                        e.stopPropagation(); // Prevent opening add modal
+                        openDetailModal(evt);
+                    };
+                    cell.appendChild(chip);
+                });
+
+                // Hover Add Button (Overlay)
+                const addBtn = document.createElement('div');
+                addBtn.className = 'add-btn hidden absolute inset-0 items-center justify-center bg-black/5 cursor-pointer';
+                addBtn.innerHTML = '<div class="w-8 h-8 bg-white rounded-full shadow-sm flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors"><i data-lucide="plus" class="w-5 h-5"></i></div>';
+                addBtn.onclick = () => openSelectionModal(dateStr);
+
+                // Only prevent events from covering the button logic if needed, 
+                // but visually we want the button on top on hover.
+                // We actually want clicking the cell (empty space) to trigger 'add' but user asked for "Hover -> Button shows -> Button Click"
+
+                cell.appendChild(addBtn);
+                grid.appendChild(cell);
+            }
+            lucide.createIcons();
+        }
+
+        // Modal Logic
+        function closeAllModals() {
+            document.querySelectorAll('[id^="modal-"]').forEach(el => el.classList.add('hidden'));
+        }
+
+        function openSelectionModal(date) {
+            selectedDate = date;
+            closeAllModals();
+            document.getElementById('modal-selection').classList.remove('hidden');
+        }
+
+        function openManualModal() {
+            closeAllModals();
+            const modal = document.getElementById('modal-manual');
+            modal.classList.remove('hidden');
+            if (selectedDate) document.getElementById('manual-date').value = selectedDate;
+        }
+
+        function openAIModal() {
+            closeAllModals();
+            document.getElementById('modal-ai').classList.remove('hidden');
+        }
+
+        function openDetailModal(evt) {
+            closeAllModals();
+            document.getElementById('detail-title').textContent = evt.title;
+            document.getElementById('detail-date').textContent = evt.date;
+            document.getElementById('detail-time').textContent = evt.time;
+            document.getElementById('detail-desc').textContent = evt.desc;
+            document.getElementById('modal-detail').classList.remove('hidden');
+        }
+
+        // Add Event Logic (Mock)
+        function addEventManual() {
+            const title = document.getElementById('manual-title').value;
+            const date = document.getElementById('manual-date').value;
+            const time = document.getElementById('manual-time').value;
+            const desc = document.getElementById('manual-desc').value;
+
+            events.push({ id: Date.now(), title, date, time, desc, type: 'meeting' });
+            renderCalendar();
+            closeAllModals();
+        }
+
+        function addEventAI() {
+            const text = document.getElementById('ai-input-text').value;
+            // Mock AI processing
+            setTimeout(() => {
+                // Assume AI inferred "Next Friday" -> just add to selected date or random
+                const date = selectedDate || '2026-02-20';
+                events.push({
+                    id: Date.now(),
+                    title: text.split(' ')[0] + ' (AI)', // Simple mock title
+                    date: date,
+                    time: '12:00',
+                    desc: text,
+                    type: 'meeting'
+                });
+                renderCalendar();
+                closeAllModals();
+            }, 500);
+        }
+
+        // Common Toggles
+        function toggleAI() {
+            document.getElementById('ai-modal').classList.toggle('hidden');
+        }
+        function toggleDropdown() {
+            const dropdown = document.getElementById('dashboard-dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+        function closeDropdown(event) {
+            if (!event.target.closest('button[onclick="toggleDropdown()"]')) {
+                document.getElementById('dashboard-dropdown').classList.add('hidden');
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Init
+        renderCalendar();
+
+    </script>
+</body>
+
+</html>
