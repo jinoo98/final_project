@@ -71,8 +71,11 @@ TEMPLATES = [
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
+    BASE_DIR / 'static',  # 이 경로에 실제 폴더가 있어야 합니다!
 ]
+
+# 배포 시 파일들을 한곳으로 모으는 경로 (보통 루트의 static_root 등)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # 배포(Deployment) 시 모든 static 파일을 한곳으로 모을 경로 (시연 시엔 필수는 아님)
 # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

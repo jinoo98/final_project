@@ -8,13 +8,27 @@
 - **django**: 웹 프레임워크 5.1.0 버전 이상
 - **python-dotenv**: env파일 관리 1.2.1버전 이상 
 
-## 📥 설치 및 실행 방법 (Setup & Installation)
+## 🐳 Docker로 간편 실행 (Recommended)
+
+Docker가 설치되어 있다면 복잡한 설정 없이 바로 실행할 수 있습니다.
+자세한 내용은 [🐳 DOCKER_GUIDE.md](./DOCKER_GUIDE.md) 파일을 참고하세요.
+
+```bash
+# 서버 실행 (빌드 포함)
+docker-compose up --build
+```
+
+---
+
+## 📥 (직접 설치) 로컬 개발 환경 설정 (Manual Setup)
+
+Docker를 사용하지 않고 직접 파이썬 환경을 구성하려면 아래 단계를 따르세요.
 
 ### 1. 저장소 복제 (Git Clone)
 먼저 프로젝트 코드를 로컬 컴퓨터로 가져옵니다.
 ```bash
 # 저장소 복사
-git clone [https://github.com/jinoo98/final_project.git](https://github.com/jinoo98/final_project.git)
+git clone https://github.com/jinoo98/final_project.git
 cd final_project
 
 # poetry 설치 (안 되어 있을 경우)
@@ -28,7 +42,6 @@ python -m poetry run python manage.py migrate
 
 # 서버 실행
 python -m poetry run python manage.py runserver
-
 ```
 
 ## 2. 🤝 Git 협업 가이드 (Git Usage)

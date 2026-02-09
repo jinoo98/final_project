@@ -9,7 +9,7 @@ def login_view(request):
     #     password = request.POST.get('password')
     #     user = authenticate(request, username=username, password=password)
     #     user=1
-    #     if user is not None:
+    #     if user is not None:git config --global user.name
     #         login(request, user)
             
     #         if not request.POST.get('remember_me'):
