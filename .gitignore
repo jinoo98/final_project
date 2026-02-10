@@ -19,4 +19,4 @@ sync_linear.js
 teams_result.json
 
 # antigravity agent
-.agent
+.agent/
