@@ -10,9 +10,10 @@ dependencies = [
     "django>=5.1.0",           # Django 추가
     "djangorestframework>=3.16.0",     # API 서버용 (선택)
     "python-dotenv>=1.2.1",           # 환경변수 관리용
-    "django-cors-headers>=4.3.1",     # CORS 관리
-    "django-allauth>=65.3.1",        # 소셜 로그인용 (allauth 추가)
-    "PyJWT>=2.8.0",                  # JWT 처리를 위해 필요 (allauth 종속성)
+    "django-cors-headers>=4.9.0",     # CORS 관리
+    "django-allauth>=65.14.1",        # 소셜 로그인용 (allauth 추가)
+    "PyJWT>=2.11.0",                  # JWT 처리를 위해 필요 (allauth 종속성)
+    "boto3 (>=1.42.46,<2.0.0)",
 ]
 
 

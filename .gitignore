@@ -20,3 +20,6 @@ teams_result.json
 
 # antigravity agent
 .agent/
+
+# mac 환경
+.DS_Store
