@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 
 
 # =========================
@@ -15,6 +16,15 @@ class User(AbstractUser):
     """
     email = models.EmailField(unique=True)
     nickname = models.CharField(max_length=50, blank=True)
+    adress = models.CharField(max_length=255, blank=True, help_text="OO시 OO동 까지만 입력")
+    birthday = models.DateField(null=True, blank=True)
+    gender = models.CharField(
+        max_length=10, 
+        choices=[('M', '남성'), ('F', '여성')], 
+        blank=True
+    )
+
+
 
     # 이메일을 로그인 ID로 사용
     USERNAME_FIELD = "email"
@@ -58,20 +68,28 @@ class UserSocialAccount(models.Model):
 
 
 
+import random
+import string
+
+def generate_meeting_code():
+    """10자리의 영문 대문자와 숫자 조합의 고유 코드 생성"""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+
 # =========================
 # MEETING
 # =========================
 class Meeting(models.Model):
     """
     ERD: CREATE TABLE meeting (
-      meeting_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+      meeting_id      VARCHAR(20) PRIMARY KEY,
       owner_user_id   INTEGER NOT NULL,
       ...
     );
     """
-    meeting_id = models.AutoField(primary_key=True)
+    meeting_id = models.CharField(primary_key=True, max_length=20, default=generate_meeting_code)
     owner = models.ForeignKey(User, on_delete=models.PROTECT, related_name="owned_meetings")
     name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, help_text="모여서 하는 활동에 대한 간단한 설명")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -88,13 +106,20 @@ class MeetingMember(models.Model):
     """
     class Role(models.TextChoices):
         OWNER = "OWNER", "Owner"
+        ADMIN = "ADMIN", "Admin"
         MEMBER = "MEMBER", "Member"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
 
     meeting_member_id = models.AutoField(primary_key=True)
     meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE, related_name="members")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="meeting_memberships")
     email = models.EmailField()
     role = models.CharField(max_length=10, choices=Role.choices)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.APPROVED)
     joined_at = models.DateTimeField(auto_now_add=True)
     left_at = models.DateTimeField(null=True, blank=True)
 
@@ -157,6 +182,17 @@ class Schedule(models.Model):
     created_via = models.CharField(max_length=10, choices=CreatedVia.choices, default=CreatedVia.MANUAL)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class ScheduleAttendance(models.Model):
+    attendance_id = models.AutoField(primary_key=True)
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name="attendances")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="schedule_attendances")
+    status = models.CharField(max_length=10, choices=[('YES', 'Yes'), ('NO', 'No')], default='YES')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('schedule', 'user')
 
 
 class ScheduleAIRequest(models.Model):
@@ -272,7 +308,10 @@ class BoardPost(models.Model):
     author = models.ForeignKey(User, on_delete=models.PROTECT, related_name="posts")
     title = models.CharField(max_length=200)
     content = models.TextField()
+    image_url = models.URLField(max_length=500, null=True, blank=True)
+    post_date = models.DateField(null=True, blank=True)
     is_notice = models.BooleanField(default=False)
+    is_pinned = models.BooleanField(default=False)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.VISIBLE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -281,6 +320,18 @@ class BoardPost(models.Model):
         indexes = [
             models.Index(fields=["meeting", "created_at"], name="idx_post_meeting_created"),
         ]
+
+
+class BoardImage(models.Model):
+    """
+    게시글에 첨부된 여러 이미지를 저장하는 모델
+    """
+    post = models.ForeignKey(BoardPost, on_delete=models.CASCADE, related_name="images")
+    image_url = models.URLField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
 
 
 class BoardComment(models.Model):
@@ -297,6 +348,7 @@ class BoardComment(models.Model):
     comment_id = models.AutoField(primary_key=True)
     post = models.ForeignKey(BoardPost, on_delete=models.CASCADE, related_name="comments")
     author = models.ForeignKey(User, on_delete=models.PROTECT, related_name="comments")
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name="replies")
     content = models.TextField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.VISIBLE)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -362,3 +414,39 @@ class ReceiptItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.PositiveIntegerField(null=True, blank=True)
     line_amount = models.PositiveIntegerField(null=True, blank=True)
+# =========================
+# NOTIFICATION
+# =========================
+class Notification(models.Model):
+    """
+    유저별 알림 정보를 저장하는 모델
+    """
+    class Type(models.TextChoices):
+        FEE_REMINDER = "FEE_REMINDER", "회비 납부 알림"
+        SYSTEM = "SYSTEM", "시스템 알림"
+
+    notification_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE, null=True, blank=True)
+    type = models.CharField(max_length=20, choices=Type.choices, default=Type.SYSTEM)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.type}] {self.user.nickname}: {self.title}"
+
+
+class UserDevice(models.Model):
+    # 유저 한 명이 여러 기기(PC, 모바일 등)를 쓸 수 있으므로 ForeignKey 사용
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='devices')
+    fcm_token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.email}의 기기 ({self.fcm_token[:10]}...)"

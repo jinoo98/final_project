@@ -1,0 +1,15 @@
+langchain
+langchain-core
+langchain-google-genai
+langchain-ollama
+langchain-openai
+langchain-community
+langserve[all]
+sse-starlette
+fastapi
+uvicorn
+python-dotenv
+pydantic
+openai
+tavily-python
+langchain-community

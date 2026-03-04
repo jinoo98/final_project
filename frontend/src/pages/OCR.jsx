@@ -1,20 +1,49 @@
-import React, { useState, useRef } from 'react';
-import { ArrowLeft, Camera, Upload, FileText, CheckCircle, Bot, X, RotateCcw } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Camera, Upload, FileText, CheckCircle, Bot, X, RotateCcw, Copy, Check, Settings } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AIChatModal from '../components/AIChatModal';
 import BottomNav from '../components/BottomNav';
-// import logo from './icon/logo.png'; // Removed import
 
 const OCR = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+    const [meetingName, setMeetingName] = useState('');
+    const [isOwner, setIsOwner] = useState(false);
+    const [role, setRole] = useState(null);
+    const [isCopied, setIsCopied] = useState(false);
 
-    // State for file and image preview
+    const handleCopyInviteCode = async () => {
+        try {
+            await navigator.clipboard.writeText(id);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+            alert('초대 코드가 복사되었습니다.');
+        } catch (err) {
+            console.error('Failed to copy logic:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchMeetingDetail();
+    }, [id]);
+
+    const fetchMeetingDetail = async () => {
+        try {
+            const response = await fetch(`/api/meetings/${id}/`);
+            if (response.ok) {
+                const data = await response.json();
+                setMeetingName(data.name);
+                setIsOwner(!!data.is_owner);
+                setRole(data.role);
+            }
+        } catch (error) {
+            console.error("Error fetching meeting detail:", error);
+        }
+    };
+
     const [selectedFile, setSelectedFile] = useState(null);
     const [selectedImage, setSelectedImage] = useState(null);
-
-    // State for upload process
     const [uploadStatus, setUploadStatus] = useState('idle'); // idle, uploading, success, error
     const [uploadResult, setUploadResult] = useState(null);
 
@@ -78,31 +107,64 @@ const OCR = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <button onClick={() => navigate('/main')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <button onClick={() => navigate('/main')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="메인 페이지로 돌아가기">
                                 <ArrowLeft className="w-6 h-6" />
                             </button>
                             <div className="flex items-center gap-3">
-                                <img src="http://localhost:8000/static/icon/logo.png" alt="Momo Logo" className="h-10 w-auto" />
-                                <h1 className="text-2xl font-bold">독서 모임</h1>
+                                <div className="relative">
+                                    <img src="/static/icon/logo.png" alt="Momo Logo" width={40} height={40} className="h-10 w-auto" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-2xl font-bold">{meetingName || '로딩 중…'}</h1>
+                                    <button
+                                        onClick={handleCopyInviteCode}
+                                        className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-muted-foreground flex items-center gap-1 group relative"
+                                        aria-label="초대 코드 복사"
+                                        title="초대 코드 복사"
+                                    >
+                                        {isCopied ? (
+                                            <Check className="w-4 h-4 text-green-500" />
+                                        ) : (
+                                            <Copy className="w-4 h-4 group-hover:text-primary transition-colors" />
+                                        )}
+                                        <span className="text-xs font-medium text-gray-400 hidden sm:inline">#{id}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="hidden md:flex items-center gap-3">
-                            <button onClick={() => navigate(`/meeting/${id}/schedule`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
-                                일정
-                            </button>
-                            <div className="relative">
-                                {/* Dashboard dropdown logic would go here if needed */}
-                                <button onClick={() => navigate(`/meeting/${id}/dashboard`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
-                                    회비 대시보드
+                        <div className="flex items-center gap-2">
+                            {(role === 'OWNER' || role === 'ADMIN') && (
+                                <button
+                                    onClick={() => navigate(`/meeting/${id}/admin`)}
+                                    className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors text-muted-foreground"
+                                    aria-label="모임 관리 설정"
+                                >
+                                    <Settings className="w-6 h-6" />
                                 </button>
+                            )}
+                            <div className="hidden md:flex items-center gap-3">
+                                <button onClick={() => navigate(`/meeting/${id}/schedule`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                                    일정
+                                </button>
+                                <button onClick={() => navigate(`/meeting/${id}/dashboard`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                                    회비
+                                </button>
+                                <button onClick={() => navigate(`/meeting/${id}/board`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
+                                    모임 게시판
+                                </button>
+                                <button className="px-4 py-2 rounded-lg transition-colors bg-primary text-white font-medium">
+                                    스마트 스캔
+                                </button>
+                                {(role === 'OWNER' || role === 'ADMIN') && (
+                                    <button
+                                        onClick={() => navigate(`/meeting/${id}/admin`)}
+                                        className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium"
+                                    >
+                                        관리
+                                    </button>
+                                )}
                             </div>
-                            <button onClick={() => navigate(`/meeting/${id}/board`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
-                                모임 게시판
-                            </button>
-                            <button className="px-4 py-2 rounded-lg transition-colors bg-primary text-white font-medium">
-                                OCR
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -112,8 +174,8 @@ const OCR = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div className="space-y-6">
                         <div>
-                            <h2 className="mb-2 text-xl font-medium">영수증 OCR</h2>
-                            <p className="text-muted-foreground">영수증을 촬영하거나 업로드하면 자동으로 금액을 인식합니다</p>
+                            <h2 className="mb-2 text-xl font-medium">스마트 스캔</h2>
+                            <p className="text-muted-foreground">영수증을 촬영하거나 업로드하면 자동으로 금액을 인식합니다.</p>
                         </div>
 
                         {/* Upload Area */}
@@ -147,8 +209,8 @@ const OCR = () => {
                                         >
                                             {uploadStatus === 'uploading' ? (
                                                 <>
-                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                    업로드 중...
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-label="업로드 중…"></div>
+                                                    업로드 중…
                                                 </>
                                             ) : (
                                                 '인식 시작하기'
@@ -168,7 +230,7 @@ const OCR = () => {
                                     </div>
 
                                     <h3 className="mb-2 font-medium">영수증을 업로드하세요</h3>
-                                    <p className="text-muted-foreground mb-6">파일을 선택하거나 사진을 직접 촬영하세요</p>
+                                    <p className="text-muted-foreground mb-6">파일을 선택하거나 사진을 직접 촬영하세요.</p>
 
                                     <div className="flex gap-3 justify-center">
                                         <button

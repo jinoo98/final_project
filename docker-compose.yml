@@ -19,3 +19,42 @@ services:
       - "5173:5173"
     environment:
       - CHOKIDAR_USEPOLLING=true
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+
+  ai:
+    build: ./ai_server
+    volumes:
+      - ./ai_server:/app
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      - ollama
+    stdin_open: true
+    tty: true
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+#   ngrok:
+#     image: ngrok/ngrok:latest
+#     restart: unless-stopped
+#     command:
+#       - "http"
+#       - "--url=lean-blotchiest-postvocalically.ngrok-free.dev"
+#       - "frontend:5173"
+#     environment:
+#       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+#     depends_on:
+#       - frontend
+
+volumes:
+  ollama_data:

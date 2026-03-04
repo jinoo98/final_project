@@ -1,143 +1,210 @@
-import { useState } from 'react';
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Plus, Bot, X, FileText, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Plus, Bot, X, FileText, CheckCircle, Copy, Check, Settings } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AIChatModal from '../components/AIChatModal';
+import TransactionModal from '../components/TransactionModal';
 import BottomNav from '../components/BottomNav';
-import FinancialChart from '../components/FinancialChart';
-// import logo from './icon/logo.png'; // Removed import
+import { BudgetGauge, CategoryDonut, TrendCombo } from '../components/FinancialChart';
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-    const [isDashboardDropdownOpen, setIsDashboardDropdownOpen] = useState(false);
+    const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+    const [meetingName, setMeetingName] = useState('');
+    const [isOwner, setIsOwner] = useState(false);
+    const [role, setRole] = useState(null);
+    const [isCopied, setIsCopied] = useState(false);
+    const [filterType, setFilterType] = useState('all');
+    const [transactions, setTransactions] = useState([]);
 
-    // Mock data
-    const transactions = [
-        { id: 1, type: 'income', title: '회비', subtitle: '2월 회비 납부', author: '김철수', date: '2026-02-01', amount: '+50,000원' },
-        { id: 2, type: 'expense', title: '도서 구매', subtitle: '이달의 책 구매', author: '박영희', date: '2026-02-03', amount: '-35,000원' }
-    ];
+    const handleCopyInviteCode = async () => {
+        try {
+            await navigator.clipboard.writeText(id);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+            alert('초대 코드가 복사되었습니다.');
+        } catch (err) {
+            console.error('Failed to copy logic:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchMeetingDetail();
+        fetchTransactions();
+    }, [id]);
+
+    const fetchMeetingDetail = async () => {
+        try {
+            const response = await fetch(`/api/meetings/${id}/`);
+            if (response.ok) {
+                const data = await response.json();
+                setMeetingName(data.name);
+                setIsOwner(!!data.is_owner);
+                setRole(data.role);
+            }
+        } catch (error) {
+            console.error("Error fetching meeting detail:", error);
+        }
+    };
+
+    const fetchTransactions = async () => {
+        try {
+            const response = await fetch(`/api/meetings/${id}/transactions/`);
+            if (response.ok) {
+                const data = await response.json();
+                setTransactions(data);
+            }
+        } catch (error) {
+            console.error("Error fetching transactions:", error);
+        }
+    };
+
+    const handleAddTransaction = () => {
+        fetchTransactions();
+    };
+
+    const filteredTransactions = transactions.filter(tx =>
+        filterType === 'all' ? true : tx.type === filterType
+    );
 
     return (
         <div className="bg-gray-50 text-gray-900 min-h-screen flex flex-col font-sans pb-16 md:pb-0">
-            {/* Header */}
             <header className="bg-white border-b border-border sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <button onClick={() => navigate('/main')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                <ArrowLeft className="w-6 h-6" />
-                            </button>
+                            <button onClick={() => navigate('/main')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="메인 페이지로 돌아가기"><ArrowLeft className="w-6 h-6" /></button>
                             <div className="flex items-center gap-3">
-                                <img src="http://localhost:8000/static/icon/logo.png" alt="Momo Logo" className="h-10 w-auto" />
-                                <h1 className="text-2xl font-bold">독서 모임</h1>
+                                <img src="/static/icon/logo.png" alt="Momo Logo" width={40} height={40} className="h-10 w-auto" />
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-xl sm:text-2xl font-bold truncate">{meetingName || '로딩 중…'}</h1>
+                                    <button onClick={handleCopyInviteCode} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-muted-foreground flex items-center gap-1 group relative" aria-label="초대 코드 복사">
+                                        {isCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 group-hover:text-primary transition-colors" />}
+                                        <span className="text-xs font-medium text-gray-400 hidden sm:inline">#{id}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-
-                        <div className="hidden md:flex items-center gap-3">
-                            <button onClick={() => navigate(`/meeting/${id}/schedule`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
-                                일정
-                            </button>
-                            <div className="relative">
-                                <button onClick={() => setIsDashboardDropdownOpen(!isDashboardDropdownOpen)} className="px-4 py-2 rounded-lg transition-colors bg-primary text-white font-medium">
-                                    회비 대시보드
+                        <div className="flex items-center gap-2">
+                            {(role === 'OWNER' || role === 'ADMIN') && (
+                                <button
+                                    onClick={() => navigate(`/meeting/${id}/admin`)}
+                                    className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors text-muted-foreground"
+                                    aria-label="모임 관리 설정"
+                                >
+                                    <Settings className="w-6 h-6" />
                                 </button>
-                                {isDashboardDropdownOpen && (
-                                    <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-border rounded-lg shadow-lg z-20">
-                                        <button onClick={() => navigate(`/meeting/${id}/dashboard`)} className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors">대시보드 조회</button>
-                                        <button onClick={() => navigate(`/meeting/${id}/dashboard?filter=income`)} className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors">수입 조회</button>
-                                        <button onClick={() => navigate(`/meeting/${id}/dashboard?filter=expense`)} className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors">지출 조회</button>
-                                    </div>
+                            )}
+                            <div className="hidden md:flex items-center gap-3">
+                                <button onClick={() => navigate(`/meeting/${id}/schedule`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">일정</button>
+                                <button className="px-4 py-2 rounded-lg transition-colors bg-primary text-white font-medium">회비</button>
+                                <button onClick={() => navigate(`/meeting/${id}/board`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">모임 게시판</button>
+                                <button onClick={() => navigate(`/meeting/${id}/ocr`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">스마트 스캔</button>
+                                {(role === 'OWNER' || role === 'ADMIN') && (
+                                    <button onClick={() => navigate(`/meeting/${id}/admin`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">관리</button>
                                 )}
                             </div>
-                            <button onClick={() => navigate(`/meeting/${id}/board`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
-                                모임 게시판
-                            </button>
-                            <button onClick={() => navigate(`/meeting/${id}/ocr`)} className="px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:bg-gray-100 font-medium">
-                                OCR
-                            </button>
                         </div>
                     </div>
                 </div>
             </header>
 
-            {/* Body */}
             <div className="flex-1 overflow-y-auto">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    {/* Visual Charts */}
-                    <FinancialChart balance={40000} income={100000} expense={60000} />
-
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white rounded-xl p-6 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-muted-foreground">잔액</h3>
-                                <Wallet className="w-5 h-5 text-primary" />
-                            </div>
-                            <p className="text-3xl font-bold mb-1">40,000원</p>
-                            <p className="text-sm text-muted-foreground">현재 모임 잔액</p>
-                        </div>
-                        <div className="bg-white rounded-xl p-6 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-muted-foreground">총 수입</h3>
-                                <TrendingUp className="w-5 h-5 text-green-500" />
-                            </div>
-                            <p className="text-3xl font-bold mb-1">100,000원</p>
-                            <p className="text-sm text-muted-foreground">이번 달</p>
-                        </div>
-                        <div className="bg-white rounded-xl p-6 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-muted-foreground">총 지출</h3>
-                                <TrendingDown className="w-5 h-5 text-red-500" />
-                            </div>
-                            <p className="text-3xl font-bold mb-1">60,000원</p>
-                            <p className="text-sm text-muted-foreground">이번 달</p>
-                        </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <BudgetGauge
+                            balance={transactions.reduce((acc, curr) => acc + (curr.type === 'income' ? curr.raw_amount : -curr.raw_amount), 0)}
+                            budget={transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.raw_amount, 0) || 150000}
+                        />
+                        <CategoryDonut transactions={transactions} />
+                        <TrendCombo transactions={transactions} />
                     </div>
 
-                    {/* Transactions */}
                     <div className="bg-white rounded-xl shadow-sm">
-                        <div className="p-6 border-b border-border flex items-center justify-between">
-                            <h2 className="text-lg font-medium">거래 내역</h2>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity">
-                                <Plus className="w-5 h-5" />
-                                거래 추가
-                            </button>
+                        <div className="p-6 border-b border-border flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
+                                <h2 className="text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">거래 내역</h2>
+                                <div className="flex items-center p-1 bg-gray-100 rounded-lg h-[38px] sm:h-auto">
+                                    <button
+                                        onClick={() => setFilterType('all')}
+                                        className={`px-3 sm:px-4 h-full text-xs sm:text-sm font-semibold rounded-md transition-all ${filterType === 'all' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        전체
+                                    </button>
+                                    <button
+                                        onClick={() => setFilterType('income')}
+                                        className={`px-3 sm:px-4 h-full text-xs sm:text-sm font-semibold rounded-md transition-all ${filterType === 'income' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        수입
+                                    </button>
+                                    <button
+                                        onClick={() => setFilterType('expense')}
+                                        className={`px-3 sm:px-4 h-full text-xs sm:text-sm font-semibold rounded-md transition-all ${filterType === 'expense' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        지출
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex-shrink-0">
+                                <button
+                                    onClick={() => setIsTransactionModalOpen(true)}
+                                    className="sm:hidden w-[38px] h-[38px] bg-primary text-white rounded-lg shadow-sm active:scale-90 transition-all flex items-center justify-center">
+                                    <Plus className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setIsTransactionModalOpen(true)}
+                                    className="hidden sm:flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-md">
+                                    <Plus className="w-5 h-5" /> 거래 추가
+                                </button>
+                            </div>
                         </div>
                         <div className="divide-y divide-border">
-                            {transactions.map(tx => (
-                                <div key={tx.id} className="p-6 hover:bg-gray-50 transition-colors">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm ${tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                    {tx.type === 'income' ? '수입' : '지출'}
-                                                </span>
-                                                <span className="font-medium">{tx.title}</span>
+                            {filteredTransactions.length > 0 ? (
+                                filteredTransactions.map(tx => (
+                                    <div key={tx.id} className="p-5 md:p-8 hover:bg-gray-50 transition-colors">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-1.5 md:mb-2">
+                                                    <span className={`inline-flex items-center px-3 py-1 md:px-4 md:py-1.5 rounded-full text-sm md:text-base font-bold ${tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                        {tx.type === 'income' ? '수입' : '지출'}
+                                                    </span>
+                                                    <span className="text-lg md:text-xl font-bold text-gray-900 text-pretty">{tx.title}</span>
+                                                </div>
+                                                <p className="text-base md:text-lg text-gray-600 mb-1.5 md:mb-2 font-medium text-pretty">{tx.subtitle}</p>
+                                                <div className="flex items-center gap-2 text-sm md:text-base text-muted-foreground font-medium">
+                                                    <span className="text-gray-500">{tx.author}</span>
+                                                    <span>·</span>
+                                                    <span>{tx.date}</span>
+                                                </div>
                                             </div>
-                                            <p className="text-muted-foreground mb-1">{tx.subtitle}</p>
-                                            <p className="text-sm text-muted-foreground">{tx.author} · {tx.date}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`text-2xl font-medium ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                                                {tx.amount}
-                                            </p>
+                                            <div className="text-right ml-4 md:ml-8">
+                                                <p className={`text-xl md:text-3xl font-black whitespace-nowrap ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {tx.amount}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="p-12 text-center text-gray-500 font-medium text-sm md:text-base">
+                                    해당하는 거래 내역이 없습니다.
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* AI Fab */}
-            <button onClick={() => setIsAIModalOpen(true)} className="fixed bottom-24 md:bottom-6 right-6 w-16 h-16 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:opacity-90 transition-transform hover:scale-105 z-40">
-                <Bot className="w-8 h-8" />
-            </button>
-
-            {/* AI Modal */}
+            <button onClick={() => setIsAIModalOpen(true)} className="fixed bottom-24 md:bottom-6 right-6 w-16 h-16 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:opacity-90 transition-transform hover:scale-105 z-40"><Bot className="w-8 h-8" /></button>
             <AIChatModal isOpen={isAIModalOpen} onClose={() => setIsAIModalOpen(false)} />
+            <TransactionModal
+                isOpen={isTransactionModalOpen}
+                onClose={() => setIsTransactionModalOpen(false)}
+                onAdd={handleAddTransaction}
+                meetingId={id}
+            />
             <BottomNav />
         </div>
     );

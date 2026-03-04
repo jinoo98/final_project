@@ -1,0 +1,32 @@
+﻿Connecting to Ollama at http://ollama:11434 with model llama3
+/app/chain_scheduleAI.py:15: LangChainDeprecationWarning: The class `TavilySearchResults` was deprecated in LangChain 0.3.25 and will be removed in 1.0. An updated version of the class exists in the `langchain-tavily package and should be used instead. To use it run `pip install -U `langchain-tavily` and import as `from `langchain_tavily import TavilySearch``.
+  search_tool = TavilySearchResults(k=3)
+[32mINFO[0m:     Started server process [[36m1[0m]
+[32mINFO[0m:     Waiting for application startup.
+
+     __          ___      .__   __.   _______      _______. _______ .______     ____    ____  _______
+    |  |        /   \     |  \ |  |  /  _____|    /       ||   ____||   _  \    \   \  /   / |   ____|
+    |  |       /  ^  \    |   \|  | |  |  __     |   (----`|  |__   |  |_)  |    \   \/   /  |  |__
+    |  |      /  /_\  \   |  . `  | |  | |_ |     \   \    |   __|  |      /      \      /   |   __|
+    |  `----./  _____  \  |  |\   | |  |__| | .----)   |   |  |____ |  |\  \----.  \    /    |  |____
+    |_______/__/     \__\ |__| \__|  \______| |_______/    |_______|| _| `._____|   \__/     |_______|
+    
+[1;32;40mLANGSERVE:[0m Playground for chain "/search/" is live at:
+[1;32;40mLANGSERVE:[0m  ??
+[1;32;40mLANGSERVE:[0m  ?붴??> /search/playground/
+[1;32;40mLANGSERVE:[0m
+[1;32;40mLANGSERVE:[0m Playground for chain "/momo-chat/" is live at:
+[1;32;40mLANGSERVE:[0m  ??
+[1;32;40mLANGSERVE:[0m  ?붴??> /momo-chat/playground/
+[1;32;40mLANGSERVE:[0m
+[1;32;40mLANGSERVE:[0m Playground for chain "/customer-center/" is live at:
+[1;32;40mLANGSERVE:[0m  ??
+[1;32;40mLANGSERVE:[0m  ?붴??> /customer-center/playground/
+[1;32;40mLANGSERVE:[0m
+[1;32;40mLANGSERVE:[0m Playground for chain "/calendar/" is live at:
+[1;32;40mLANGSERVE:[0m  ??
+[1;32;40mLANGSERVE:[0m  ?붴??> /calendar/playground/
+[1;32;40mLANGSERVE:[0m
+[1;32;40mLANGSERVE:[0m See all available routes at /docs/
+[32mINFO[0m:     Application startup complete.
+[32mINFO[0m:     Uvicorn running on [1mhttp://0.0.0.0:8001[0m (Press CTRL+C to quit)

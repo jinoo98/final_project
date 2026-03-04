@@ -23,14 +23,14 @@ const BottomNav = () => {
             path: `/meeting/${id}/board`,
         },
         {
-            label: 'OCR',
+            label: '스마트 스캔',
             icon: Camera,
             path: `/meeting/${id}/ocr`,
         },
     ];
 
     const isActive = (path) => {
-        if (path.includes('dashboard') && location.pathname.includes('detail')) return true;
+        if (path.includes('schedule') && location.pathname.includes('/detail/')) return true;
         return location.pathname === path;
     };
 
@@ -45,9 +45,10 @@ const BottomNav = () => {
                             onClick={() => navigate(item.path)}
                             className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${active ? 'text-primary' : 'text-muted-foreground hover:text-gray-900'
                                 }`}
+                            aria-label={`${item.label} 페이지로 이동`}
                         >
                             <item.icon className={`w-6 h-6 ${active ? 'fill-primary/10' : ''}`} />
-                            <span className="text-[10px] font-medium">{item.label}</span>
+                            <span className="text-[12px] font-medium">{item.label}</span>
                         </button>
                     );
                 })}

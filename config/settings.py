@@ -26,7 +26,13 @@ SECRET_KEY = 'django-insecure-&xiyb5yk*g^6ol(2@qfx=0vl#_javj-n&(uyo%fwjw#sl_r3vn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['lean-blotchiest-postvocalically.ngrok-free.dev', 'localhost', '127.0.0.1', '0.0.0.0']
+CSRF_TRUSTED_ORIGINS = ['https://lean-blotchiest-postvocalically.ngrok-free.dev', 'http://lean-blotchiest-postvocalically.ngrok-free.dev']
+
+# Ngrok/Proxy settings
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 
 # Application definition
@@ -198,9 +204,21 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True   # 기본값: 브라우저 닫으면 세션 만료
+SESSION_SAVE_EVERY_REQUEST = True        # 매 요청마다 세션 저장
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
+
+# 모바일 및 HTTPS(ngrok) 환경을 위한 보안 설정
+# ngrok을 통해 접속하므로 HTTPS 환경임에 따라 Secure 플래그 활성화
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
