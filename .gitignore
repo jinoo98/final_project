@@ -19,14 +19,14 @@ sync_linear.js
 teams_result.json
 
 # antigravity agent
-.agent/
+.agents/
 
 # mac 환경
 .DS_Store
 
 # firebase
 serviceAccountKey.json
-firebase-messaging-sw.js
+frontend/public/firebase-messaging-sw.js
 
 # model 
 ocr/PaddleOCR-VL-SFT-recipt/model-00001-of-00001.safetensors
