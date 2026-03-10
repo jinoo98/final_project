@@ -64,6 +64,31 @@ const Dashboard = () => {
         fetchTransactions();
     };
 
+    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+    const handleDeleteTransaction = async () => {
+        if (!selectedTransaction || !window.confirm('정말 이 거래 내역을 삭제하시겠습니까?')) return;
+
+        try {
+            const response = await fetch(`/api/transactions/${selectedTransaction.id}/delete/`, {
+                method: 'DELETE',
+            });
+            if (response.ok) {
+                alert('삭제되었습니다.');
+                setIsActionModalOpen(false);
+                setSelectedTransaction(null);
+                fetchTransactions();
+            } else {
+                const err = await response.json().catch(() => ({}));
+                alert(`삭제 실패: ${err.error || '알 수 없는 오류'}`);
+            }
+        } catch (error) {
+            console.error('Delete error', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    };
+
     const filteredTransactions = transactions.filter(tx =>
         filterType === 'all' ? true : tx.type === filterType
     );
@@ -163,12 +188,21 @@ const Dashboard = () => {
                         <div className="divide-y divide-border">
                             {filteredTransactions.length > 0 ? (
                                 filteredTransactions.map(tx => (
-                                    <div key={tx.id} className="p-5 md:p-8 hover:bg-gray-50 transition-colors">
+                                    <div
+                                        key={tx.id}
+                                        className={`p-5 md:p-8 hover:bg-gray-50 transition-colors ${(role === 'OWNER' || role === 'ADMIN' || tx.is_author) ? 'cursor-pointer' : ''}`}
+                                        onClick={() => {
+                                            if (role === 'OWNER' || role === 'ADMIN' || tx.is_author) {
+                                                setSelectedTransaction(tx);
+                                                setIsActionModalOpen(true);
+                                            }
+                                        }}
+                                    >
                                         <div className="flex items-center justify-between">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-1.5 md:mb-2">
                                                     <span className={`inline-flex items-center px-3 py-1 md:px-4 md:py-1.5 rounded-full text-sm md:text-base font-bold ${tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {tx.type === 'income' ? '수입' : '지출'}
+                                                        {tx.type === 'income' ? '수입' : '지출'} · {tx.category_name}
                                                     </span>
                                                     <span className="text-lg md:text-xl font-bold text-gray-900 text-pretty">{tx.title}</span>
                                                 </div>
@@ -201,10 +235,48 @@ const Dashboard = () => {
             <AIChatModal isOpen={isAIModalOpen} onClose={() => setIsAIModalOpen(false)} />
             <TransactionModal
                 isOpen={isTransactionModalOpen}
-                onClose={() => setIsTransactionModalOpen(false)}
+                onClose={() => {
+                    setIsTransactionModalOpen(false);
+                    // 닫힐 때 선택된 내역 초기화하여 추가 모드로 돌아가게 함
+                    if (!isActionModalOpen) setSelectedTransaction(null);
+                }}
                 onAdd={handleAddTransaction}
                 meetingId={id}
+                initialData={isTransactionModalOpen ? selectedTransaction : null}
             />
+            {isActionModalOpen && selectedTransaction && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl animate-in fade-in zoom-in duration-200">
+                        <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-900">거래 내역 관리</h3>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => {
+                                    setIsActionModalOpen(false);
+                                    setIsTransactionModalOpen(true);
+                                }}
+                                className="w-full text-left px-4 py-3 text-primary font-bold hover:bg-blue-50 rounded-xl transition-colors"
+                            >
+                                수정하기
+                            </button>
+                            <button
+                                onClick={handleDeleteTransaction}
+                                className="w-full text-left px-4 py-3 text-red-600 font-bold hover:bg-red-50 rounded-xl transition-colors"
+                            >
+                                삭제하기
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsActionModalOpen(false);
+                                    setSelectedTransaction(null);
+                                }}
+                                className="w-full text-left px-4 py-3 text-gray-700 font-bold hover:bg-gray-100 rounded-xl transition-colors"
+                            >
+                                닫기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <BottomNav />
         </div>
     );

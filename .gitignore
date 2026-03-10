@@ -27,3 +27,7 @@ teams_result.json
 # firebase
 serviceAccountKey.json
 firebase-messaging-sw.js
+
+# model 
+ocr/PaddleOCR-VL-SFT-recipt/model-00001-of-00001.safetensors
+*.safetensors

@@ -32,6 +32,9 @@ function App() {
                 <Route path="/meeting/:id/ocr" element={<ProtectedRoute><OCR /></ProtectedRoute>} />
                 <Route path="/meeting/:id/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
                 <Route path="/meeting/:id/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+
+                {/* Catch-all route */}
+                <Route path="*" element={<Navigate to="/main" replace />} />
             </Routes>
         </Router>
     );

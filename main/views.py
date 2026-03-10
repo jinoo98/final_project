@@ -3,10 +3,10 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, authenticate, logout as auth_logout
-from .utils.upload import upload_to_r2
+from .r2 import upload_file_obj_to_r2
 import socket
 import json
 
@@ -99,49 +99,52 @@ def meeting_schedule_view(request, meeting_id):
 
 @csrf_exempt
 def ocr_upload_view(request, meeting_id):
-    if request.method == 'POST':
-        try:
-            if 'image' not in request.FILES:
-                return JsonResponse({'error': 'No image file provided'}, status=400)
-            
-            image_file = request.FILES['image']
-            
-            # 임시 파일 저장 디렉토리 확인
-            import os
-            from django.conf import settings
-            import time
-            
-            temp_dir = os.path.join(settings.BASE_DIR, 'temp')
-            if not os.path.exists(temp_dir):
-                os.makedirs(temp_dir)
-                
-            # 파일명 생성 및 저장
-            filename = f"ocr_{meeting_id}_{int(time.time())}_{image_file.name}"
-            temp_path = os.path.join(temp_dir, filename)
-            
-            with open(temp_path, 'wb+') as destination:
-                for chunk in image_file.chunks():
-                    destination.write(chunk)
-            
-            print(f"Uploading file to R2: {temp_path}")
-            
-            # R2 업로드 수행
-            upload_to_r2(temp_path)
-            
-            # (선택사항) 업로드 후 임시 파일 삭제
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-            
-            return JsonResponse({
-                'message': 'Upload successful',
-                'filename': filename,
-            })
-            
-        except Exception as e:
-            print(f"Error during upload: {e}")
-            return JsonResponse({'error': str(e)}, status=500)
-            
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
+    """
+    스마트스캔 API
+    POST: multipart/form-data, 'image' 필드에 영수증 이미지
+    → OCR 추론 결과 JSON 반환
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        if 'image' not in request.FILES:
+            return JsonResponse({'error': '이미지 파일이 없습니다.'}, status=400)
+
+        image_file = request.FILES['image']
+
+        # PIL Image 변환
+        from PIL import Image as PILImage
+        import io
+        image = PILImage.open(io.BytesIO(image_file.read())).convert("RGB")
+
+        # OCR 추론 (전역 모델 사용)
+        from .ocr_service import run_ocr, is_model_ready
+        if not is_model_ready():
+            return JsonResponse(
+                {'error': 'OCR 모델이 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.'},
+                status=503
+            )
+
+        result = run_ocr(image)
+
+        if not result.get('success'):
+            return JsonResponse({'error': result.get('error', 'OCR 처리 실패')}, status=500)
+
+        return JsonResponse({
+            'success':   True,
+            'filename':  image_file.name,
+            '상호명':    result.get('상호명', ''),
+            '사업자번호': result.get('사업자번호', ''),
+            '날짜':      result.get('날짜', ''),
+            '합계':      result.get('합계', ''),
+            'ocr_raw':   result.get('ocr_raw', ''),
+        })
+
+    except Exception as e:
+        print(f"[OCR] 처리 오류: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 def signup_api(request):
@@ -252,7 +255,7 @@ def get_profile_api(request):
         'email': user.email,
         'nickname': user.nickname,
         'adress': user.adress,
-        'birthday': user.birthday.isoformat() if user.birthday else '',
+        'birthday': user.birthday.isoformat() if hasattr(user.birthday, 'isoformat') else str(user.birthday) if user.birthday else '',
         'gender': user.gender
     })
 
@@ -301,7 +304,7 @@ def delete_account_api(request):
             if not user.check_password(password):
                 return JsonResponse({'error': '비밀번호가 일치하지 않습니다.'}, status=400)
             
-            from .models import Meeting, MeetingMember, Schedule, FinTransaction, BoardPost, BoardComment, Receipt
+            from .models import Meeting, MeetingMember, Schedule, FinTransaction, BoardPost, BoardComment
             
             owned_meetings = Meeting.objects.filter(owner=user)
             for meeting in owned_meetings:
@@ -320,7 +323,6 @@ def delete_account_api(request):
             FinTransaction.objects.filter(created_by=user).delete()
             BoardPost.objects.filter(author=user).delete()
             BoardComment.objects.filter(author=user).delete()
-            Receipt.objects.filter(uploaded_by=user).delete()
             user.delete()
             auth_logout(request)
             
@@ -946,37 +948,66 @@ def board_image_upload_api(request, meeting_id):
             
             image_file = request.FILES['image']
             
-            import os
-            from django.conf import settings
-            import time
-            from .utils.upload import upload_to_r2
+            from PIL import Image
+            import io
+            import datetime
+            from .r2 import upload_file_obj_to_r2
+
+            img = Image.open(image_file)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
             
-            board_static_dir = os.path.join(settings.BASE_DIR, 'main', 'static', 'board')
-            if not os.path.exists(board_static_dir):
-                os.makedirs(board_static_dir)
+            buffer = io.BytesIO()
+            img.save(buffer, format='WEBP')
+            buffer.seek(0)
+            
+            date_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            original_name = getattr(image_file, 'name', 'image')
+            name_without_ext = original_name.rsplit('.', 1)[0]
+            object_key = f"{meeting_id}/images/{date_prefix}_{name_without_ext}.webp"
+            
+            uploaded_path = upload_file_obj_to_r2(buffer, object_key, content_type='image/webp')
+            if uploaded_path:
+                image_url = uploaded_path.replace('/', '\\') 
+                api_url = f"/api/board_images/{image_url}"
                 
-            filename = f"board_{meeting_id}_{int(time.time())}_{image_file.name}"
-            file_path = os.path.join(board_static_dir, filename)
-            
-            with open(file_path, 'wb+') as destination:
-                for chunk in image_file.chunks():
-                    destination.write(chunk)
-            
-            try:
-                upload_to_r2(file_path)
-            except Exception as e:
-                print(f"R2 Backup Upload failed: {e}")
-            
-            static_url = f"/static/board/{filename}"
-            
-            return JsonResponse({
-                'message': 'Upload successful',
-                'imageUrl': static_url
-            })
+                return JsonResponse({
+                    'message': 'Upload successful',
+                    'imageUrl': api_url
+                })
+            else:
+                return JsonResponse({'error': 'Failed to upload to R2'}, status=500)
             
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def serve_board_image_api(request, image_path):
+    """
+    R2에 저장된 모임 게시판 이미지를 서빙하는 API.
+    직접적인 R2 URL 노출을 피하고 보안을 유지하기 위해 프록시 역할을 수행합니다.
+    """
+    if not request.user.is_authenticated:
+        return HttpResponse('Unauthorized', status=401)
+    
+    from .r2 import create_r2, BUCKET
+    try:
+        # DB에 저장된 백슬래시(\)를 슬래시(/)로 변환 (R2 호환성)
+        safe_path = image_path.replace('\\', '/')
+        
+        r2 = create_r2()
+        # R2에서 객체 가져오기
+        response = r2.get_object(Bucket=BUCKET, Key=safe_path)
+        
+        # HttpResponse가 아닌 FileResponse를 사용하여 스트리밍 방식으로 전달
+        return FileResponse(
+            response['Body'],
+            content_type=response.get('ContentType', 'image/webp')
+        )
+    except Exception as e:
+        print(f"Error serving board image ({image_path}): {e}")
+        return HttpResponse(f'Image not found: {str(e)}', status=404)
 
 @csrf_exempt
 def get_schedules_api(request, meeting_id):
@@ -1488,10 +1519,12 @@ def get_transactions_api(request, meeting_id):
                 'title': tx.title,
                 'subtitle': tx.memo or '',
                 'author': tx.created_by.nickname or tx.created_by.username,
+                'is_author': request.user == tx.created_by,
                 'date': tx.tx_date.isoformat(),
                 'amount': f"{'+' if tx.direction == 'IN' else '-'}{tx.amount:,}원",
                 'raw_amount': tx.amount,
-                'category_name': tx.category.name if tx.category else '기타'
+                'category_name': tx.category if tx.category else '기타',
+                'receipt_url': tx.receipt_url
             })
         return JsonResponse(data, safe=False)
     except Meeting.DoesNotExist:
@@ -1500,39 +1533,98 @@ def get_transactions_api(request, meeting_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
+def serve_receipt_api(request, receipt_path):
+    """
+    R2에 저장된 영수증 이미지를 서빙하는 API.
+    직접적인 R2 URL 노출을 피하고 보안을 유지하기 위해 프록시 역할을 수행합니다.
+    """
+    if not request.user.is_authenticated:
+        return HttpResponse('Unauthorized', status=401)
+    
+    from .r2 import create_r2, BUCKET
+    try:
+        # DB에 저장된 백슬래시(\)를 슬래시(/)로 변환 (R2 호환성)
+        safe_path = receipt_path.replace('\\', '/')
+        
+        r2 = create_r2()
+        # R2에서 객체 가져오기
+        response = r2.get_object(Bucket=BUCKET, Key=safe_path)
+        
+        # HttpResponse가 아닌 FileResponse를 사용하여 스트리밍 방식으로 전달
+        return FileResponse(
+            response['Body'],
+            content_type=response.get('ContentType', 'image/webp')
+        )
+    except Exception as e:
+        print(f"Error serving receipt image ({receipt_path}): {e}")
+        return HttpResponse(f'Image not found: {str(e)}', status=404)
+
+@csrf_exempt
 def create_transaction_api(request, meeting_id):
     if not request.user.is_authenticated:
         return JsonResponse({'error': '로그인이 필요합니다.'}, status=401)
     
     if request.method == 'POST':
         from .models import Meeting, FinTransaction
+        import json
         try:
-            data = json.loads(request.body)
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+            else:
+                data = request.POST
+
             meeting = Meeting.objects.get(meeting_id=meeting_id)
             
             direction = 'IN' if data.get('type') == 'income' else 'OUT'
             
             # 쉼표 제거 및 숫자로 변환
             amount_str = str(data.get('amount')).replace(',', '')
-            amount = int(amount_str)
+            amount = int(amount_str) if amount_str else 0
             
-            # 카테고리 처리
             category_name = data.get('category_name', '기타')
-            from .models import FinCategory
-            category, created = FinCategory.objects.get_or_create(
-                meeting=meeting,
-                name=category_name,
-                direction=direction
-            )
+            
+            # 날짜 유효성 검사 추가
+            tx_date_str = data.get('date')
+            import datetime
+            try:
+                datetime.datetime.strptime(tx_date_str, "%Y-%m-%d")
+            except (ValueError, TypeError):
+                return JsonResponse({'error': f'유효하지 않은 날짜 형식입니다: {tx_date_str}'}, status=400)
+
+            receipt_url = None
+            if 'receipt_image' in request.FILES:
+                receipt_file = request.FILES['receipt_image']
+                from PIL import Image
+                import io
+                import datetime
+                from .r2 import upload_file_obj_to_r2
+
+                img = Image.open(receipt_file)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                buffer = io.BytesIO()
+                img.save(buffer, format='WEBP')
+                buffer.seek(0)
+
+                date_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                original_name = getattr(receipt_file, 'name', 'receipt')
+                name_without_ext = original_name.rsplit('.', 1)[0]
+                object_key = f"{meeting_id}/receipt/{date_prefix}_{name_without_ext}.webp"
+
+                uploaded_path = upload_file_obj_to_r2(buffer, object_key, content_type='image/webp')
+                if uploaded_path:
+                    receipt_url = uploaded_path.replace('/', '\\')
             
             tx = FinTransaction.objects.create(
                 meeting=meeting,
                 direction=direction,
-                category=category,
+                category=category_name,
                 amount=amount,
                 tx_date=data.get('date'),
                 title=data.get('title'),
                 memo=data.get('memo'),
+                receipt_url=receipt_url,
                 created_by=request.user,
                 created_via=FinTransaction.CreatedVia.MANUAL
             )
@@ -1542,5 +1634,87 @@ def create_transaction_api(request, meeting_id):
                 'message': '거래 내역이 추가되었습니다.'
             })
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def edit_transaction_api(request, tx_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': '로그인이 필요합니다.'}, status=401)
+        
+    if request.method == 'PUT':
+        from .models import FinTransaction, MeetingMember
+        try:
+            tx = FinTransaction.objects.get(tx_id=tx_id)
+            is_author = (request.user == tx.created_by)
+            
+            user_membership = MeetingMember.objects.filter(meeting=tx.meeting, user=request.user).first()
+            role = user_membership.role if user_membership else None
+            is_admin_or_owner = role in ['OWNER', 'ADMIN']
+            
+            if not is_author and not is_admin_or_owner:
+                return JsonResponse({'error': '권한이 없습니다.'}, status=403)
+                
+            data = json.loads(request.body)
+            direction = 'IN' if data.get('type') == 'income' else 'OUT'
+            
+            amount_str = str(data.get('amount')).replace(',', '')
+            amount = int(amount_str)
+            
+            category_name = data.get('category_name', '기타')
+            
+            # 날짜 유효성 검사 추가
+            tx_date_str = data.get('date')
+            import datetime
+            try:
+                datetime.datetime.strptime(tx_date_str, "%Y-%m-%d")
+            except (ValueError, TypeError):
+                return JsonResponse({'error': f'유효하지 않은 날짜 형식입니다: {tx_date_str}'}, status=400)
+            
+            tx.direction = direction
+            tx.category = category_name
+            tx.amount = amount
+            tx.tx_date = data.get('date')
+            tx.title = data.get('title')
+            tx.memo = data.get('memo')
+            tx.save()
+            
+            return JsonResponse({'message': '거래 내역이 수정되었습니다.'})
+        except FinTransaction.DoesNotExist:
+            return JsonResponse({'error': '해당 거래 내역을 찾을 수 없습니다.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def delete_transaction_api(request, tx_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': '로그인이 필요합니다.'}, status=401)
+        
+    if request.method == 'DELETE':
+        from .models import FinTransaction, MeetingMember
+        try:
+            tx = FinTransaction.objects.get(tx_id=tx_id)
+            # Only transaction author or meeting owner/admin can delete
+            is_author = (request.user == tx.created_by)
+            
+            user_membership = MeetingMember.objects.filter(meeting=tx.meeting, user=request.user).first()
+            role = user_membership.role if user_membership else None
+            is_admin_or_owner = role in ['OWNER', 'ADMIN']
+            
+            if not is_author and not is_admin_or_owner:
+                return JsonResponse({'error': '권한이 없습니다.'}, status=403)
+                
+            tx.delete()
+            return JsonResponse({'message': '거래 내역이 삭제되었습니다.'})
+        except FinTransaction.DoesNotExist:
+            return JsonResponse({'error': '해당 거래 내역을 찾을 수 없습니다.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
     return JsonResponse({'error': 'Method not allowed'}, status=405)

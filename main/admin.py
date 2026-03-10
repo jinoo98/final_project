@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models import (
     User, UserSocialAccount, Meeting, MeetingMember, MeetingInvite,
-    Schedule, ScheduleAIRequest, FinCategory, FinTransaction, FinAttachment,
-    BoardPost, BoardComment, BoardLike, Receipt, ReceiptItem
+    Schedule, ScheduleAIRequest, FinTransaction,
+    BoardPost, BoardComment, BoardLike
 )
 
 @admin.register(User)
@@ -45,21 +45,12 @@ class ScheduleAdmin(admin.ModelAdmin):
 class ScheduleAIRequestAdmin(admin.ModelAdmin):
     list_display = ('request_id', 'meeting', 'user', 'created_at')
 
-@admin.register(FinCategory)
-class FinCategoryAdmin(admin.ModelAdmin):
-    list_display = ('category_id', 'meeting', 'name', 'direction')
-    list_filter = ('direction',)
-    search_fields = ('name',)
-
 @admin.register(FinTransaction)
 class FinTransactionAdmin(admin.ModelAdmin):
-    list_display = ('tx_id', 'meeting', 'direction', 'amount', 'tx_date', 'title')
-    list_filter = ('direction', 'created_via', 'tx_date')
-    search_fields = ('title', 'memo')
+    list_display = ('tx_id', 'meeting', 'direction', 'category', 'amount', 'tx_date', 'title', 'receipt_url')
+    list_filter = ('direction', 'category', 'created_via', 'tx_date')
+    search_fields = ('title', 'memo', 'category')
 
-@admin.register(FinAttachment)
-class FinAttachmentAdmin(admin.ModelAdmin):
-    list_display = ('attachment_id', 'tx', 'type', 'created_at')
 
 @admin.register(BoardPost)
 class BoardPostAdmin(admin.ModelAdmin):
@@ -76,13 +67,3 @@ class BoardCommentAdmin(admin.ModelAdmin):
 class BoardLikeAdmin(admin.ModelAdmin):
     # BoardLike uses default 'id' PK
     list_display = ('id', 'post', 'user', 'created_at')
-
-@admin.register(Receipt)
-class ReceiptAdmin(admin.ModelAdmin):
-    list_display = ('receipt_id', 'meeting', 'uploaded_by', 'store_name', 'total_amount', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('store_name',)
-
-@admin.register(ReceiptItem)
-class ReceiptItemAdmin(admin.ModelAdmin):
-    list_display = ('receipt_item_id', 'receipt', 'item_name', 'quantity', 'unit_price')

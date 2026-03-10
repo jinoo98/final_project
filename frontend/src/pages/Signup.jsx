@@ -276,21 +276,27 @@ const Signup = () => {
                                     name="birthday"
                                     value={formData.birthday}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-sm"
                                     autoComplete="bday"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1 text-gray-700">성별</label>
-                                <div className="flex gap-4 items-center h-[42px]">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="gender" value="M" checked={formData.gender === 'M'} onChange={handleChange} className="w-4 h-4 text-blue-600" />
-                                        <span className="text-sm">남성</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="gender" value="F" checked={formData.gender === 'F'} onChange={handleChange} className="w-4 h-4 text-blue-600" />
-                                        <span className="text-sm">여성</span>
-                                    </label>
+                                <label className="block text-sm font-medium mb-2 text-gray-700">성별</label>
+                                <div className="flex gap-2 h-[42px]">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, gender: 'M' }))}
+                                        className={`flex-1 flex items-center justify-center gap-2 rounded-lg border transition-all text-sm font-medium ${formData.gender === 'M' ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                                    >
+                                        남성
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, gender: 'F' }))}
+                                        className={`flex-1 flex items-center justify-center gap-2 rounded-lg border transition-all text-sm font-medium ${formData.gender === 'F' ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                                    >
+                                        여성
+                                    </button>
                                 </div>
                             </div>
                         </div>

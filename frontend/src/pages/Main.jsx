@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, LogOut, Plus, UserPlus, Users, Calendar, UserMinus, X, Bot } from 'lucide-react';
+import { User, LogOut, Plus, UserPlus, Users, Calendar, UserMinus, X, Bot, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AIChatModal from '../components/AIChatModal';
 
@@ -185,7 +185,16 @@ const Main = () => {
                                     <div className="flex items-start justify-between mb-4"><div className="flex-1"><h3 className="mb-2 font-medium text-lg">{meeting.title}</h3><p className="text-sm text-muted-foreground line-clamp-2 mb-3">{meeting.description}</p></div>{meeting.isOwner && <span className="px-2 py-1 bg-primary text-white text-xs rounded-full">방장</span>}</div>
                                     <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground"><div className="flex items-center gap-1"><Users className="w-4 h-4" /><span>{meeting.members}명</span></div><div className="flex items-center gap-1"><Calendar className="w-4 h-4" /><span>{meeting.date}</span></div></div>
                                     <div className="mb-4 p-3 bg-blue-50 rounded-lg"><p className="text-sm text-muted-foreground mb-1">현재 잔액</p><p className="text-xl text-primary font-bold">{meeting.balance}</p></div>
-                                    <div className="flex gap-2"><button onClick={() => navigate(`/meeting/${meeting.id}/schedule`)} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium">입장</button>{!meeting.isOwner && (<button onClick={async () => { if (window.confirm('정말로 이 모임에서 탈퇴하시겠습니까?')) { try { const response = await fetch(`/api/meetings/${meeting.id}/leave/`, { method: 'POST' }); if (response.ok) { const data = await response.json(); alert(data.message); fetchMeetings(); } else { const errorData = await response.json(); alert(errorData.error || '탈퇴 처리에 실패했습니다.'); } } catch (error) { console.error('Leave error:', error); alert('오류가 발생했습니다.'); } } }} className="px-4 py-2 border border-red-100 text-red-500 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm">탈퇴</button>)}</div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => navigate(`/meeting/${meeting.id}/schedule`)} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium">입장</button>
+                                        <button onClick={() => navigate(`/meeting/${meeting.id}/ocr`)} className="px-4 py-2 border border-primary text-primary rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center gap-1">
+                                            <Camera className="w-4 h-4" />
+                                            <span className="text-sm">스마트 스캔</span>
+                                        </button>
+                                        {!meeting.isOwner && (
+                                            <button onClick={async () => { if (window.confirm('정말로 이 모임에서 탈퇴하시겠습니까?')) { try { const response = await fetch(`/api/meetings/${meeting.id}/leave/`, { method: 'POST' }); if (response.ok) { const data = await response.json(); alert(data.message); fetchMeetings(); } else { const errorData = await response.json(); alert(errorData.error || '탈퇴 처리에 실패했습니다.'); } } catch (error) { console.error('Leave error:', error); alert('오류가 발생했습니다.'); } } }} className="px-4 py-2 border border-red-100 text-red-500 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm">탈퇴</button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>

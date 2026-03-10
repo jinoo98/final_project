@@ -1,61 +1,121 @@
-import React, { useState } from 'react';
-import { X, Plus, Minus, Calendar, Tag, CreditCard, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, CheckCircle, Tag, Calendar, CreditCard, FileText, Check } from 'lucide-react';
 
-const TransactionModal = ({ isOpen, onClose, onAdd, meetingId }) => {
-    const [type, setType] = useState('expense'); // 'income' or 'expense'
+const TransactionModal = ({ isOpen, onClose, onAdd, meetingId, initialData = null }) => {
+    const isEditMode = !!initialData;
+
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [categoryName, setCategoryName] = useState('기타');
     const [memo, setMemo] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isImageZoomed, setIsImageZoomed] = useState(false);
 
-    const categories = {
-        income: ['회비', '지원금', '이자', '기타'],
-        expense: ['식비', '활동비', '장소대여', '교통비', '소모품', '기타']
+    // 확대 이미지 위치 및 드래그 상태
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [scale, setScale] = useState(1);
+
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setTitle(initialData.title || '');
+                setAmount(initialData.raw_amount ? String(initialData.raw_amount) : '');
+                setDate(initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0]);
+                setCategoryName(initialData.category_name || '기타');
+                setMemo(initialData.subtitle || '');
+            } else {
+                setTitle('');
+                setAmount('');
+                setDate(new Date().toISOString().split('T')[0]);
+                setCategoryName('기타');
+                setMemo('');
+            }
+            setIsImageZoomed(false);
+            setPosition({ x: 0, y: 0 });
+            setScale(1);
+        }
+    }, [isOpen, initialData]);
+
+    const handleMouseDown = (e) => {
+        if (!isImageZoomed) return;
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
+        });
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    // 마우스 휠로 확대/축소 기능 추가
+    const handleWheel = (e) => {
+        if (!isImageZoomed) return;
+        const delta = e.deltaY;
+        setScale(prev => {
+            const next = delta > 0 ? prev * 0.9 : prev * 1.1;
+            return Math.min(Math.max(next, 0.5), 5); // 0.5배 ~ 5배 제한
+        });
     };
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!title || !amount || !date) {
-            alert('필수 항목을 모두 입력해주세요.');
+        if (!title || !amount || !date || !categoryName) {
+            alert('상호명(명칭), 날짜, 금액, 종류는 필수 입력 항목입니다.');
             return;
         }
 
         setIsSubmitting(true);
         try {
-            const response = await fetch(`/api/meetings/${meetingId}/transactions/create/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    type,
-                    title,
-                    amount: parseInt(amount.replace(/,/g, '')),
-                    date,
-                    category_name: categoryName,
-                    memo
-                })
+            const rawAmount = parseInt(String(amount).replace(/,/g, ''), 10) || 0;
+            const type = categoryName === '회비' ? 'income' : 'expense';
+
+            const payload = {
+                type,
+                title,
+                amount: rawAmount,
+                date,
+                category_name: categoryName,
+                memo
+            };
+
+            const url = isEditMode
+                ? `/api/transactions/${initialData.id}/edit/`
+                : `/api/meetings/${meetingId}/transactions/create/`;
+
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
-                const data = await response.json();
-                onAdd(data);
-                setTitle('');
-                setAmount('');
-                setMemo('');
-                setCategoryName('기타');
+                onAdd();
                 onClose();
             } else {
-                const error = await response.json();
-                alert(`에러: ${error.error}`);
+                const error = await response.json().catch(() => ({}));
+                alert(`에러: ${error.error || '알 수 없는 오류'}`);
             }
         } catch (error) {
-            console.error('Error creating transaction:', error);
-            alert('거래 추가 중 오류가 발생했습니다.');
+            console.error('Error saving transaction:', error);
+            alert('거래 저장 중 오류가 발생했습니다.');
         } finally {
             setIsSubmitting(false);
         }
@@ -67,133 +127,216 @@ const TransactionModal = ({ isOpen, onClose, onAdd, meetingId }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
 
-            <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-6">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-2xl font-black text-gray-900">거래 내역 추가</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
-                            <X className="w-6 h-6" />
-                        </button>
+                {/* 모달 헤더 */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-bold text-gray-900">
+                            {isEditMode ? '거래 내역 수정' : '거래 내역 추가'}
+                        </h3>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                        <X className="w-5 h-5 text-gray-500" />
+                    </button>
+                </div>
+
+                {/* 모달 본문 */}
+                <div className="overflow-y-auto flex-1 pb-4">
+                    {/* 카테고리 (종류) 선택 */}
+                    <div className="px-6 py-4 pt-6">
+                        {/* 영수증 이미지 미리보기 (존재하는 경우) */}
+                        {initialData?.receipt_url && (
+                            <div className="col-span-2 mt-2">
+                                <label className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold mb-2 text-indigo-600 bg-indigo-50">
+                                    <FileText className="w-3.5 h-3.5" /> 영수증 이미지
+                                </label>
+                                <div className="rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 flex justify-center p-2">
+                                    <img
+                                        src={`/api/receipts/${initialData.receipt_url.replace(/\\/g, '/')}`}
+                                        alt="Receipt"
+                                        className="max-h-64 w-auto rounded-lg shadow-sm object-contain cursor-zoom-in hover:opacity-95 transition-all duration-200"
+                                        onClick={() => setIsImageZoomed(true)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <div className="space-y-4">
+                            {/* 수입 카테고리 */}
+                            <div>
+                                <span className="text-xs font-bold text-green-600 mb-2 block">수입</span>
+                                <div className="grid grid-cols-4 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCategoryName('회비')}
+                                        className={`py-2 text-sm font-medium rounded-xl border transition-all ${categoryName === '회비'
+                                            ? 'bg-green-500 border-green-500 text-white shadow-sm'
+                                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        회비
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 지출 카테고리 */}
+                            <div>
+                                <span className="text-xs font-bold text-red-600 mb-2 block">지출</span>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                    {['식비', '활동비', '기타'].map(cat => (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => setCategoryName(cat)}
+                                            className={`py-2 text-sm font-medium rounded-xl border transition-all ${categoryName === cat
+                                                ? 'bg-red-500 border-red-500 text-white shadow-sm'
+                                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Transaction Type Toggle */}
-                        <div className="flex p-1.5 bg-gray-100 rounded-2xl">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setType('income');
-                                    setCategoryName('회비');
-                                }}
-                                className={`flex-1 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${type === 'income' ? 'bg-white text-green-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                                <Plus className={`w-4 h-4 ${type === 'income' ? 'text-green-600' : 'text-gray-400'}`} />
-                                수입
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setType('expense');
-                                    setCategoryName('기타');
-                                }}
-                                className={`flex-1 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${type === 'expense' ? 'bg-white text-red-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                                <Minus className={`w-4 h-4 ${type === 'expense' ? 'text-red-600' : 'text-gray-400'}`} />
-                                지출
-                            </button>
+                    {/* 하단: 필드 입력 폼 */}
+                    <div className="px-6 pb-2 grid grid-cols-2 gap-3">
+
+                        <div className="col-span-2 sm:col-span-1 border border-gray-200 rounded-2xl p-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+                            <label className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold mb-1 cursor-pointer text-blue-600 bg-blue-50">
+                                <Tag className="w-3.5 h-3.5" /> 거래 명칭
+                            </label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="예: 스타벅스"
+                                className="w-full text-sm font-bold text-gray-800 bg-transparent border-none focus:outline-none focus:ring-0 px-1 placeholder:font-normal placeholder:text-gray-300"
+                            />
                         </div>
 
-                        <div className="space-y-4">
-                            {/* Title Selection */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">거래 명칭</label>
-                                <div className="relative group">
-                                    <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-                                    <select
-                                        value={title}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setTitle(val);
-                                            setCategoryName(val);
-                                            // Auto-set type based on category
-                                            if (val === '회비') setType('income');
-                                            else setType('expense');
-                                        }}
-                                        className="w-full pl-12 pr-10 py-4 bg-gray-50 border-2 border-transparent focus:border-primary focus:bg-white rounded-2xl outline-none transition-all font-medium text-lg appearance-none"
-                                        required
-                                    >
-                                        <option value="" disabled>명칭 선택</option>
-                                        <option value="식비">식비</option>
-                                        <option value="회비">회비</option>
-                                        <option value="활동비">활동비</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                                </div>
-                            </div>
-
-                            {/* Amount Input */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">금액</label>
-                                <div className="relative group">
-                                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-                                    <input
-                                        type="text"
-                                        value={amount}
-                                        onChange={handleAmountChange}
-                                        placeholder="0"
-                                        className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-transparent focus:border-primary focus:bg-white rounded-2xl outline-none transition-all font-black text-2xl text-right"
-                                        required
-                                    />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-gray-500">원</span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4">
-                                {/* Date Input */}
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">날짜</label>
-                                    <div className="relative group">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input
-                                            type="date"
-                                            value={date}
-                                            onChange={(e) => setDate(e.target.value)}
-                                            className="w-full pl-10 pr-3 py-3 bg-gray-50 border-2 border-transparent focus:border-primary focus:bg-white rounded-2xl outline-none transition-all font-bold text-sm"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Memo Input */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">메모 (선택)</label>
-                                <textarea
-                                    value={memo}
-                                    onChange={(e) => setMemo(e.target.value)}
-                                    placeholder="상세 내용을 적어주세요."
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent focus:border-primary focus:bg-white rounded-2xl outline-none transition-all font-medium resize-none h-24"
-                                />
-                            </div>
+                        <div className="col-span-2 sm:col-span-1 border border-gray-200 rounded-2xl p-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+                            <label className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold mb-1 cursor-pointer text-green-600 bg-green-50">
+                                <Calendar className="w-3.5 h-3.5" /> 날짜
+                            </label>
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="w-full text-sm font-bold text-gray-800 bg-transparent border-none focus:outline-none focus:ring-0 px-1 placeholder:font-normal placeholder:text-gray-300"
+                            />
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className={`w-full py-4 rounded-2xl font-black text-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:opacity-90 shadow-primary/30'}`}
-                        >
-                            {isSubmitting ? (
-                                <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                <>추가하기</>
-                            )}
-                        </button>
-                    </form>
+                        <div className="col-span-2 border border-gray-200 rounded-2xl p-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+                            <label className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold mb-1 cursor-pointer text-orange-600 bg-orange-50">
+                                <CreditCard className="w-3.5 h-3.5" /> 합계 (원)
+                            </label>
+                            <input
+                                type="text"
+                                value={amount}
+                                onChange={handleAmountChange}
+                                placeholder="숫자만 입력"
+                                className="w-full text-sm font-bold text-gray-800 bg-transparent border-none focus:outline-none focus:ring-0 px-1 placeholder:font-normal placeholder:text-gray-300"
+                            />
+                        </div>
+
+                        <div className="col-span-2 border border-gray-200 rounded-2xl p-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+                            <label className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold mb-1 cursor-pointer text-gray-600 bg-gray-100">
+                                <FileText className="w-3.5 h-3.5" /> 메모 (선택, 최대 20자)
+                            </label>
+                            <input
+                                type="text"
+                                value={memo}
+                                onChange={(e) => setMemo(e.target.value)}
+                                maxLength={20}
+                                placeholder="상세 내용을 적어주세요."
+                                className="w-full text-sm font-bold text-gray-800 bg-transparent border-none focus:outline-none focus:ring-0 px-1 placeholder:font-normal placeholder:text-gray-300"
+                            />
+                        </div>
+                    </div>
                 </div>
+
+                {/* 모달 푸터 */}
+                <div className="px-6 py-4 border-t border-gray-100 flex gap-3 bg-white">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-3.5 border border-border text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm"
+                    >
+                        취소
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="flex-[2] py-3.5 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-md text-sm flex items-center justify-center gap-2"
+                    >
+                        {isSubmitting ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <>
+                                <Check className="w-4 h-4" />
+                                {isEditMode ? '수정 사항 저장' : '내역 저장하기'}
+                            </>
+                        )}
+                    </button>
+                </div>
+
             </div>
+
+            {/* 영수증 이미지 확대 오버레이 */}
+            {isImageZoomed && initialData?.receipt_url && (
+                <div
+                    className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-4 overflow-hidden animate-in fade-in duration-300"
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    onWheel={handleWheel}
+                >
+                    <div
+                        className="relative w-full h-full flex items-center justify-center select-none"
+                        onClick={(e) => {
+                            if (!isDragging && position.x === 0 && position.y === 0) {
+                                setIsImageZoomed(false);
+                            }
+                        }}
+                    >
+                        <div
+                            className="transition-transform duration-75 shadow-2xl"
+                            style={{
+                                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                                cursor: isDragging ? 'grabbing' : 'grab'
+                            }}
+                            onMouseDown={handleMouseDown}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <img
+                                src={`/api/receipts/${initialData.receipt_url.replace(/\\/g, '/')}`}
+                                alt="Enlarged Receipt"
+                                className="max-w-[90vw] max-h-[90vh] object-contain pointer-events-none rounded-sm"
+                            />
+                        </div>
+
+                        {/* 닫기 버튼 */}
+                        <button
+                            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-[80]"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsImageZoomed(false);
+                            }}
+                        >
+                            <X className="w-8 h-8" />
+                        </button>
+
+                        {/* 조작 설명 팁 */}
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 text-white/80 text-xs rounded-full backdrop-blur-md pointer-events-none">
+                            드래그로 이동 • 휠로 확대/축소 • 클릭하여 닫기
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

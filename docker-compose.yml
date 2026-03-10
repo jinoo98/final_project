@@ -3,6 +3,7 @@ services:
     build: .
     volumes:
       - .:/app
+      - hf_cache:/root/.cache/huggingface
     ports:
       - "8000:8000"
     env_file:
@@ -20,6 +21,7 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: sh -c "npm install && npm run dev -- --host"
 
   ai:
     build: ./ai_server
@@ -43,18 +45,14 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
-
-#   ngrok:
-#     image: ngrok/ngrok:latest
-#     restart: unless-stopped
-#     command:
-#       - "http"
-#       - "--url=lean-blotchiest-postvocalically.ngrok-free.dev"
-#       - "frontend:5173"
-#     environment:
-#       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-#     depends_on:
-#       - frontend
+  # ngrok:
+  #   image: ngrok/ngrok:latest
+  #   restart: unless-stopped
+  #   environment:
+  #     NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+  #   depends_on:
+  #     - frontend
 
 volumes:
   ollama_data:
+  hf_cache:

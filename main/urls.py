@@ -49,6 +49,7 @@ urlpatterns = [
     path('api/meetings/<str:meeting_id>/posts/', views.get_board_posts_api, name='get_board_posts_api'),
     path('api/meetings/<str:meeting_id>/posts/create/', views.create_board_post_api, name='create_board_post_api'),
     path('api/meetings/<str:meeting_id>/posts/upload/', views.board_image_upload_api, name='board_image_upload_api'),
+    path('api/board_images/<path:image_path>', views.serve_board_image_api, name='serve_board_image_api'),
     path('api/posts/<int:post_id>/delete/', views.delete_board_post_api, name='delete_board_post_api'),
     path('api/posts/<int:post_id>/like/', views.toggle_post_like_api, name='toggle_post_like_api'),
     path('api/posts/<int:post_id>/pin/', views.toggle_post_pin_api, name='toggle_post_pin_api'),
@@ -68,6 +69,9 @@ urlpatterns = [
     # Finance APIs
     path('api/meetings/<str:meeting_id>/transactions/', views.get_transactions_api, name='get_transactions_api'),
     path('api/meetings/<str:meeting_id>/transactions/create/', views.create_transaction_api, name='create_transaction_api'),
+    path('api/transactions/<int:tx_id>/edit/', views.edit_transaction_api, name='edit_transaction_api'),
+    path('api/transactions/<int:tx_id>/delete/', views.delete_transaction_api, name='delete_transaction_api'),
+    path('api/receipts/<path:receipt_path>', views.serve_receipt_api, name='serve_receipt_api'),
 
     path('accounts/3rdparty/login/cancelled/', views.login_cancelled_view, name='login_cancelled'),
     # 2. 마지막에 Catch-all (리액트 라우팅용)

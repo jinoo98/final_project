@@ -27,6 +27,16 @@ docker-compose up --build
 - 실행이 완료되면 브라우저에서 `http://localhost:8000` 으로 접속하세요.
 - **서버 종료**: `Ctrl + C` 또는 다른 터미널에서 `docker-compose down`
 
+### 3. PWA 테스트 및 외부 접속 (ngrok)
+PWA 기능을 모바일 기기에서 직접 테스트하거나 HTTPS 환경이 필요한 경우 ngrok을 사용하여 로컬 서버를 외부에 노출할 수 있습니다.
+
+ngrok 실행 방법
+
+```bash 
+ngrok http --domain=lean-blotchiest-postvocalically.ngrok-free.dev 5173
+```
+
+- "https://lean-blotchiest-postvocalically.ngrok-free.dev/" 사이트로 접속하세요.
 ---
 
 ## 2. 🤝 Git 협업 가이드 (Git Usage)

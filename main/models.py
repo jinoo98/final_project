@@ -213,23 +213,9 @@ class ScheduleAIRequest(models.Model):
 # =========================
 # FINANCE
 # =========================
-class FinCategory(models.Model):
-    """
-    ERD: CREATE TABLE fin_category (
-      category_id  INTEGER PRIMARY KEY AUTOINCREMENT,
-      ...
-    );
-    """
-    category_id = models.AutoField(primary_key=True)
-    meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE, related_name="fin_categories")
-    name = models.CharField(max_length=50)
-    direction = models.CharField(max_length=3, choices=models.TextChoices('Direction', ['IN', 'OUT']).choices)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["meeting", "name", "direction"], name="uq_fin_category")
-        ]
+# =========================
+# FINANCE
+# =========================
 
 
 class FinTransaction(models.Model):
@@ -251,11 +237,12 @@ class FinTransaction(models.Model):
     tx_id = models.AutoField(primary_key=True)
     meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE, related_name="fin_transactions")
     direction = models.CharField(max_length=3, choices=Direction.choices)
-    category = models.ForeignKey(FinCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name="transactions")
+    category = models.CharField(max_length=50, default='기타')
     amount = models.PositiveIntegerField()
     tx_date = models.DateField()
     title = models.CharField(max_length=200)
     memo = models.TextField(null=True, blank=True)
+    receipt_url = models.CharField(max_length=255, null=True, blank=True)
 
     payer_member = models.ForeignKey(
         MeetingMember, on_delete=models.SET_NULL, null=True, blank=True, related_name="paid_in_transactions"
@@ -274,18 +261,7 @@ class FinTransaction(models.Model):
         ]
 
 
-class FinAttachment(models.Model):
-    """
-    ERD: CREATE TABLE fin_attachment (
-      attachment_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ...
-    );
-    """
-    attachment_id = models.AutoField(primary_key=True)
-    tx = models.ForeignKey(FinTransaction, on_delete=models.CASCADE, related_name="attachments")
-    type = models.CharField(max_length=30)  # IMAGE/FILE/LINK
-    file_url = models.URLField(max_length=500)
-    created_at = models.DateTimeField(auto_now_add=True)
+
 
 
 # =========================
@@ -374,46 +350,7 @@ class BoardLike(models.Model):
         ]
 
 
-# =========================
-# RECEIPT (OCR)
-# =========================
-class Receipt(models.Model):
-    """
-    ERD: CREATE TABLE receipt (
-      receipt_id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      ...
-    );
-    """
-    receipt_id = models.AutoField(primary_key=True)
-    meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE, related_name="receipts")
-    uploaded_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="uploaded_receipts")
-    image_url = models.URLField(max_length=500)
-    ocr_raw_text = models.TextField(null=True, blank=True)
-    store_name = models.CharField(max_length=200, null=True, blank=True)
-    total_amount = models.PositiveIntegerField(null=True, blank=True)
-    purchased_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(null=True, blank=True)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=["meeting", "created_at"], name="idx_receipt_meeting_created"),
-        ]
-
-
-class ReceiptItem(models.Model):
-    """
-    ERD: CREATE TABLE receipt_item (
-      receipt_item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ...
-    );
-    """
-    receipt_item_id = models.AutoField(primary_key=True)
-    receipt = models.ForeignKey(Receipt, on_delete=models.CASCADE, related_name="items")
-    item_name = models.CharField(max_length=200)
-    quantity = models.PositiveIntegerField(default=1)
-    unit_price = models.PositiveIntegerField(null=True, blank=True)
-    line_amount = models.PositiveIntegerField(null=True, blank=True)
 # =========================
 # NOTIFICATION
 # =========================
