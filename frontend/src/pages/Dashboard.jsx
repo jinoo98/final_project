@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Plus, Bot, X, FileText, CheckCircle, Copy, Check, Settings } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Plus, Bot, X, FileText, CheckCircle, Copy, Check, Settings, Download } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AIChatModal from '../components/AIChatModal';
 import TransactionModal from '../components/TransactionModal';
 import BottomNav from '../components/BottomNav';
 import { BudgetGauge, CategoryDonut, TrendCombo } from '../components/FinancialChart';
+import { usePdfDownload } from '../hooks/usePDFDownload';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -17,6 +18,39 @@ const Dashboard = () => {
     const [isCopied, setIsCopied] = useState(false);
     const [filterType, setFilterType] = useState('all');
     const [transactions, setTransactions] = useState([]);
+    const [selectedMonth, setSelectedMonth] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    });
+
+    const monthTransactions = transactions.filter(tx => tx.date.startsWith(selectedMonth));
+    const filteredTransactions = monthTransactions.filter(tx =>
+        filterType === 'all' ? true : tx.type === filterType
+    );
+
+    const { downloadPdf, isGenerating } = usePdfDownload();
+
+    const handleDownloadPdf = useCallback(() => {
+        const income = monthTransactions.filter(tx => tx.type === 'income').reduce((acc, curr) => acc + curr.raw_amount, 0);
+        const expense = monthTransactions.filter(tx => tx.type === 'expense').reduce((acc, curr) => acc + curr.raw_amount, 0);
+
+        const pdfData = {
+            meetingName: meetingName,
+            reportMonth: selectedMonth,
+            issueDate: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+            previousBalance: 0, // 현재 데이터 구조상 전월 이월금 계산 로직이 필요하면 추가
+            totalIncome: income,
+            totalExpense: expense,
+            transactions: monthTransactions.map(tx => ({
+                date: tx.date,
+                type: tx.type,
+                description: tx.title,
+                amount: tx.raw_amount,
+                note: tx.author // 비고란에 작성자 표시
+            }))
+        };
+        downloadPdf(pdfData);
+    }, [meetingName, selectedMonth, monthTransactions, downloadPdf]);
 
     const handleCopyInviteCode = async () => {
         try {
@@ -89,9 +123,14 @@ const Dashboard = () => {
         }
     };
 
-    const filteredTransactions = transactions.filter(tx =>
-        filterType === 'all' ? true : tx.type === filterType
-    );
+
+    // 사용 가능한 월 목록 추출
+    const availableMonths = [...new Set(transactions.map(tx => tx.date.substring(0, 7)))].sort().reverse();
+    // 현재 선택된 월이 목록에 없으면 추가 (기본값 유지용)
+    if (!availableMonths.includes(selectedMonth)) {
+        availableMonths.unshift(selectedMonth);
+        availableMonths.sort().reverse();
+    }
 
     return (
         <div className="bg-gray-50 text-gray-900 min-h-screen flex flex-col font-sans pb-16 md:pb-0">
@@ -139,18 +178,29 @@ const Dashboard = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         <BudgetGauge
-                            balance={transactions.reduce((acc, curr) => acc + (curr.type === 'income' ? curr.raw_amount : -curr.raw_amount), 0)}
-                            budget={transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.raw_amount, 0) || 150000}
+                            balance={monthTransactions.reduce((acc, curr) => acc + (curr.type === 'income' ? curr.raw_amount : -curr.raw_amount), 0)}
+                            budget={monthTransactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.raw_amount, 0) || 150000}
                         />
-                        <CategoryDonut transactions={transactions} />
-                        <TrendCombo transactions={transactions} />
+                        <CategoryDonut transactions={monthTransactions} />
+                        <TrendCombo transactions={monthTransactions} />
                     </div>
 
                     <div className="bg-white rounded-xl shadow-sm">
                         <div className="p-6 border-b border-border flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
                                 <h2 className="text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">거래 내역</h2>
-                                <div className="flex items-center p-1 bg-gray-100 rounded-lg h-[38px] sm:h-auto">
+                                <select
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(e.target.value)}
+                                    className="px-3 py-1.5 bg-gray-100 rounded-lg text-sm font-bold text-gray-900 border-none focus:ring-2 focus:ring-primary outline-none cursor-pointer"
+                                >
+                                    {availableMonths.map(month => (
+                                        <option key={month} value={month}>
+                                            {month.split('-')[0]}년 {month.split('-')[1]}월
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="flex items-center p-1 bg-gray-100 rounded-lg h-[38px] sm:h-auto ml-2">
                                     <button
                                         onClick={() => setFilterType('all')}
                                         className={`px-3 sm:px-4 h-full text-xs sm:text-sm font-semibold rounded-md transition-all ${filterType === 'all' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
@@ -172,7 +222,16 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
-                            <div className="flex-shrink-0">
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <button
+                                    onClick={handleDownloadPdf}
+                                    disabled={isGenerating}
+                                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 active:scale-95 transition-all shadow-md disabled:opacity-50"
+                                    title="PDF 내역 다운로드"
+                                >
+                                    {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download className="w-5 h-5" />}
+                                    <span className="hidden sm:inline">PDF 다운로드</span>
+                                </button>
                                 <button
                                     onClick={() => setIsTransactionModalOpen(true)}
                                     className="sm:hidden w-[38px] h-[38px] bg-primary text-white rounded-lg shadow-sm active:scale-90 transition-all flex items-center justify-center">

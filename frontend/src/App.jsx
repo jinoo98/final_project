@@ -11,6 +11,8 @@ import Schedule from './pages/Schedule';
 import MyPage from './pages/MyPage';
 import Unauthorized from './pages/Unauthorized';
 import Admin from './pages/Admin';
+import JWTLogin from './pages/JWTLogin';
+import JWTDashboard from './pages/JWTDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -32,6 +34,8 @@ function App() {
                 <Route path="/meeting/:id/ocr" element={<ProtectedRoute><OCR /></ProtectedRoute>} />
                 <Route path="/meeting/:id/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
                 <Route path="/meeting/:id/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                <Route path="/jwt-login" element={<JWTLogin />} />
+                <Route path="/jwt-dashboard" element={<JWTDashboard />} />
 
                 {/* Catch-all route */}
                 <Route path="*" element={<Navigate to="/main" replace />} />

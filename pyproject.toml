@@ -9,6 +9,7 @@ requires-python = ">=3.12"
 dependencies = [
     "django>=5.1.0",           # Django 추가
     "djangorestframework>=3.16.0",     # API 서버용 (선택)
+    "djangorestframework-simplejwt>=5.5.0", # SimpleJWT 추가
     "python-dotenv>=1.2.1",           # 환경변수 관리용
     "django-cors-headers>=4.9.0",     # CORS 관리
     "django-allauth>=65.14.1",        # 소셜 로그인용 (allauth 추가)

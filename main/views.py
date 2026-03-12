@@ -10,6 +10,19 @@ from .r2 import upload_file_obj_to_r2
 import socket
 import json
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def protected_view(request):
+    """토큰이 유효한 사용자만 접근 가능한 테스트 API"""
+    return Response({
+        'message': 'JWT 인증 성공!',
+        'user_id': request.user.id
+    })
+
 # --- 파이어베이스 Admin 초기화 ---
 # 서버가 구동될 때 최초 1회만 실행되어 파이어베이스와 연결합니다.
 if not firebase_admin._apps:
@@ -810,9 +823,29 @@ def delete_board_post_api(request, post_id):
             user_role = user_member.role if user_member else None
             
             if (post.author == request.user) or (user_role in [MeetingMember.Role.OWNER, MeetingMember.Role.ADMIN]):
+                # Delete images from R2
+                from .r2 import delete_file_from_r2
+                
+                # 모든 관련 이미지 URL 수집 (중복 제거를 위해 set 사용)
+                urls_to_delete = set()
+                if post.image_url:
+                    urls_to_delete.add(post.image_url)
+                
+                # BoardImage 모델에 저장된 추가 이미지들
+                for img_obj in post.images.all():
+                    urls_to_delete.add(img_obj.image_url)
+                
+                for url in urls_to_delete:
+                    # URL에서 R2 키 추출 (/api/board_images/ 경로 제외)
+                    key = url
+                    if '/api/board_images/' in url:
+                        key = url.split('/api/board_images/')[-1]
+                    
+                    delete_file_from_r2(key)
+
                 post.status = BoardPost.Status.DELETED
                 post.save()
-                return JsonResponse({'message': '게시글이 삭제되었습니다.'})
+                return JsonResponse({'message': '게시글과 관련 이미지가 삭제되었습니다.'})
             else:
                 return JsonResponse({'error': '삭제 권한이 없습니다.'}, status=403)
                 
@@ -1710,6 +1743,11 @@ def delete_transaction_api(request, tx_id):
             if not is_author and not is_admin_or_owner:
                 return JsonResponse({'error': '권한이 없습니다.'}, status=403)
                 
+            # If there's a receipt image, delete it from R2
+            if tx.receipt_url:
+                from .r2 import delete_file_from_r2
+                delete_file_from_r2(tx.receipt_url)
+
             tx.delete()
             return JsonResponse({'message': '거래 내역이 삭제되었습니다.'})
         except FinTransaction.DoesNotExist:

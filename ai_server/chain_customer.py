@@ -10,7 +10,7 @@ load_dotenv()
 # 로컬 Ollama를 사용하는 경우, base_url을 'http://host.docker.internal:11434' 등으로 설정해야 할 수 있습니다.
 # OLLAMA_BASE_URL 환경변수를 통해 설정 가능합니다. (기본값: http://host.docker.internal:11434 - 도커 환경 고려)
 ollama_base_url = os.environ.get("OLLAMA_BASE_URL", "http://ollama:11434")
-ollama_model = os.environ.get("OLLAMA_MODEL", "llama3")
+ollama_model = os.environ.get("OLLAMA_MODEL", "llama3.2")
 
 print(f"Connecting to Ollama at {ollama_base_url} with model {ollama_model}")
 

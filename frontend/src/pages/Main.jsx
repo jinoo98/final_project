@@ -187,10 +187,6 @@ const Main = () => {
                                     <div className="mb-4 p-3 bg-blue-50 rounded-lg"><p className="text-sm text-muted-foreground mb-1">현재 잔액</p><p className="text-xl text-primary font-bold">{meeting.balance}</p></div>
                                     <div className="flex gap-2">
                                         <button onClick={() => navigate(`/meeting/${meeting.id}/schedule`)} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium">입장</button>
-                                        <button onClick={() => navigate(`/meeting/${meeting.id}/ocr`)} className="px-4 py-2 border border-primary text-primary rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center gap-1">
-                                            <Camera className="w-4 h-4" />
-                                            <span className="text-sm">스마트 스캔</span>
-                                        </button>
                                         {!meeting.isOwner && (
                                             <button onClick={async () => { if (window.confirm('정말로 이 모임에서 탈퇴하시겠습니까?')) { try { const response = await fetch(`/api/meetings/${meeting.id}/leave/`, { method: 'POST' }); if (response.ok) { const data = await response.json(); alert(data.message); fetchMeetings(); } else { const errorData = await response.json(); alert(errorData.error || '탈퇴 처리에 실패했습니다.'); } } catch (error) { console.error('Leave error:', error); alert('오류가 발생했습니다.'); } } }} className="px-4 py-2 border border-red-100 text-red-500 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm">탈퇴</button>
                                         )}

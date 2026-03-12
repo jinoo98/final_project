@@ -38,3 +38,22 @@ def upload_file_obj_to_r2(file_obj, object_key, content_type='application/octet-
     except Exception as e:
         print(f"❌ Upload failed: {e}")
         return None
+
+def delete_file_from_r2(object_key):
+    """
+    R2에서 파일을 삭제합니다.
+    """
+    if not object_key:
+        return False
+        
+    r2 = create_r2()
+    # 만약 백슬래시가 포함되어 있다면 슬래시로 변경 (저장 시 replace('/', '\\') 처리가 되어 있는 경우 대비)
+    object_key = object_key.replace('\\', '/')
+    
+    try:
+        r2.delete_object(Bucket=BUCKET, Key=object_key)
+        print(f"✅ Deleted → {BUCKET}/{object_key}")
+        return True
+    except Exception as e:
+        print(f"❌ Deletion failed: {e}")
+        return False
