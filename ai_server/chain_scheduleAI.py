@@ -1,5 +1,5 @@
 import os
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -8,15 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 1. 모델 설정 (Ollama - 로컬 실행)
-ollama_base_url = os.environ.get("OLLAMA_BASE_URL", "http://ollama:11434")
-ollama_model = os.environ.get("OLLAMA_MODEL", "llama3.2")
-
-print(f"Connecting to Ollama at {ollama_base_url} with model {ollama_model}")
-
-model = ChatOllama(
-    model=ollama_model,
-    base_url=ollama_base_url,
+# 1. 모델 설정 (OpenAI - GPT-4o-mini)
+model = ChatOpenAI(
+    model="gpt-4o-mini",
     temperature=0.7,
 )
 
